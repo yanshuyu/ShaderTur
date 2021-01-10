@@ -1,0 +1,15 @@
+
+float3 UnityObjectToWorldDir( in float3 dir )
+float3 UnityObjectToWorldNormal( in float3 norm )
+float3 UnityWorldSpaceViewDir( in float3 worldPos )
+float3 UnityWorldSpaceLightDir( in float3 worldPos ) 
+
+unity_ObjectToWorld // M
+unity_WorldToObject // Inverse_M
+
+unity_WorldToCamera // V
+unity_CameraToWorld // Inverse_V
+
+float4 UnityObjectToClipPos(in float3 pos)  // MVP
+float4 UnityWorldToClipPos( in float3 pos ) // VP
+float4 UnityViewToClipPos( in float3 pos ) // V
