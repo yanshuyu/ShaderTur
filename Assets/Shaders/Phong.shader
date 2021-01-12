@@ -61,19 +61,22 @@
             #pragma fragment frag
             #pragma multi_compile _ SHADOWS_SCREEN
             #pragma multi_compile _ VERTEXLIGHT_ON
-        
+
+            #define UNITY_SPECCUBE_LOD_STEPS 6
+
             #include "PhongLighting.cginc"
 
             sampler2D _AlbedoMap;
-            float4 _AlbedoMap_ST;
-            float4 _MainColor;
+            half4 _AlbedoMap_ST;
+            fixed4 _MainColor;
             fixed _Shininess;
 
             sampler2D _NormalMap;
 
             sampler2D _EmissiveMap;
-            float4 _EmissiveColor;
-
+            fixed4 _EmissiveColor;
+            
+            half _Reflectivity;
 
             VS_OUT vert (VS_IN v)
             {
@@ -96,14 +99,17 @@
 
             fixed4 frag (VS_OUT fs_in) : SV_Target
             {
+                half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
+                half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
+                half3 normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
+                
                 // main directional light
                 fixed4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
                 // diffuse, specular
-                half3 C = PhongLighting(fs_in, _NormalMap, A.rgb, _SpecColor.rgb, _Shininess);
+                half3 C = PhongLighting(fs_in, normal, A.rgb, _SpecColor.rgb, _Shininess);
 
                 // emissive
                 half3 E = tex2D(_EmissiveMap, fs_in.uv).rgb * _EmissiveColor.rgb;
-
                 half3 finalColor = C + E; 
 
                 // 4 vert lit point light
@@ -115,7 +121,11 @@
                 finalColor += saturate(ShadeSH9(half4(fs_in.normalW, 1))); 
 
                 // environment reflection
-
+                half3 V = UnityWorldSpaceViewDir(fs_in.posW);
+                half3 sampleDir = reflect(-V, normal);
+                half roughness = 1 - _Reflectivity;
+                half3 R = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, sampleDir, roughness * UNITY_SPECCUBE_LOD_STEPS).rgb;
+                finalColor += R;
 
                 return  fixed4(finalColor, A.a);
             }
@@ -160,8 +170,11 @@
 
                 fixed4 frag (VS_OUT fs_in) : SV_Target
                 {
+                    half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
+                    half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
+                    half3 normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
                     half4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
-                    half3 C = PhongLighting(fs_in, _NormalMap, A.rgb, _SpecColor, _Shininess);
+                    half3 C = PhongLighting(fs_in, normal, A.rgb, _SpecColor, _Shininess);
                     return fixed4(C, A.a);
                 }
 

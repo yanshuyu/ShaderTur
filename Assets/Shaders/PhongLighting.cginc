@@ -27,21 +27,17 @@ struct VS_OUT
 };
 
 
-half3 PhongLighting(VS_OUT vs_out, sampler2D normalMap, fixed3 Albedo, fixed3 Spec, half Shininess) {
-    half3 normalT = UnpackNormal(tex2D(normalMap, vs_out.uv));
-    half3 biTangentW = normalize(cross(vs_out.normalW, vs_out.tangentW.xyz) * vs_out.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
-    half3 normal = normalize(normalT.x * vs_out.tangentW.xyz + normalT.y * biTangentW + normalT.z * vs_out.normalW);
-    
+half3 PhongLighting(VS_OUT vs_out, half3 normalW, fixed3 Albedo, fixed3 Spec, half Shininess) {
     half3 L = normalize(UnityWorldSpaceLightDir(vs_out.posW));
     half3 V = normalize(UnityWorldSpaceViewDir(vs_out.posW));
-    float NdotL = saturate(dot(normal, L));
+    float NdotL = saturate(dot(normalW, L));
     half3 I = _LightColor0.rgb * NdotL;
     UNITY_LIGHT_ATTENUATION(atten, vs_out, vs_out.posW);
     I *= atten;
     
     half3 D = I * Albedo;
 
-    float NdotH =  saturate(dot(normal, normalize(L + V)));
+    float NdotH =  saturate(dot(normalW, normalize(L + V)));
     half3 S=  pow(NdotH, Shininess * 256) * Spec;
 
     return D + S;

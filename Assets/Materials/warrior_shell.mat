@@ -81,8 +81,9 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
+    - _Reflectivity: 0
     - _RimPow: 1
-    - _Shininess: 74.4
+    - _Shininess: 0.28
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
