@@ -2,23 +2,22 @@
 {
     Properties
     {
-        _AlbedoMap ("Albedo", 2D) = "white" {}
-        _MainColor ("Main Color", Color) = (0.8, 0.8, 0.8, 1.0)
+        _AlbedoMap ("Albedo(RGBA)", 2D) = "white" {}
+        _MainColor ("Main Color(RGBA)", Color) = (0.8, 0.8, 0.8, 1.0)
         _NormalMap ("Normal Map", 2D) = "bump" {}
         _SpecColor ("Specular Color", Color) = (1, 1, 1, 1)
         _Shininess ("Shininess", Range(0.0, 1.0)) = 0.5
-        _EmissiveMap ("Emissive", 2D) = "balck" {}
-        _EmissiveColor ("Emissive Color", Color) = (0.0, 0.0, 0.0 , 1.0)
+        _EmissiveMap ("Emissive(RGB)", 2D) = "balck" {}
+        _EmissiveColor ("Emissive Color(RGB)", Color) = (0.0, 0.0, 0.0 , 1.0)
         _Reflectivity ("Environement Reflectivity", Range(0, 1)) = 0
     }
 
     SubShader
     {
         Tags { "RenderType"="Opaque" 
-                "Queue" = "Geometry" 
+                "Queue" = "Geometry"
              }
         LOD 100
-
 
         Pass {
             Tags {"LightMode" = "ShadowCaster"}
@@ -61,6 +60,8 @@
             #pragma fragment frag
             #pragma multi_compile _ SHADOWS_SCREEN
             #pragma multi_compile _ VERTEXLIGHT_ON
+            
+            #pragma shader_feature _ USE_NORMAL_MAP
 
             #define UNITY_SPECCUBE_LOD_STEPS 6
 
@@ -99,10 +100,13 @@
 
             fixed4 frag (VS_OUT fs_in) : SV_Target
             {
+                half3 normal = fs_in.normalW;
+                #ifdef USE_NORMAL_MAP 
                 half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
                 half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
-                half3 normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
-                
+                normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
+                #endif
+
                 // main directional light
                 fixed4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
                 // diffuse, specular
@@ -144,6 +148,7 @@
                 #pragma fragment frag
                 #pragma multi_compile_fwdadd
                 #pragma multi_compile _ SHADOWS_SCREEN
+                #pragma shader_feature _ USE_NORMAL_MAP
 
                 #include "PhongLighting.cginc"
                 
@@ -152,8 +157,6 @@
                 float4 _AlbedoMap_ST;
                 float4 _MainColor;
                 float _Shininess;
-
-
 
 
                 VS_OUT vert (VS_IN v)
@@ -169,10 +172,14 @@
                 }
 
                 fixed4 frag (VS_OUT fs_in) : SV_Target
-                {
+                {   
+                    half3 normal = fs_in.normalW;
+                    #ifdef USE_NORMAL_MAP
                     half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
                     half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
-                    half3 normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
+                    normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
+                    #endif
+
                     half4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
                     half3 C = PhongLighting(fs_in, normal, A.rgb, _SpecColor, _Shininess);
                     return fixed4(C, A.a);
@@ -181,6 +188,7 @@
 
                 ENDCG
         }
-
     }
+
+    CustomEditor "PhongLigtingShaderGUI"
 }
