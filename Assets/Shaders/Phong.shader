@@ -9,7 +9,11 @@
         _Shininess ("Shininess", Range(0.0, 1.0)) = 0.5
         _EmissiveMap ("Emissive(RGB)", 2D) = "balck" {}
         _EmissiveColor ("Emissive Color(RGB)", Color) = (0.0, 0.0, 0.0 , 1.0)
-        _Reflectivity ("Environement Reflectivity", Range(0, 1)) = 0
+        _Reflectivity ("Reflectivity", Range(0, 1)) = 0.5
+        _AlphaThreshold ("Alpha Cutout Threshold", Range(0, 1)) = 0.1
+        [HideInInspector] _SrcBlendFactor ("Src Blend", Float) = 1
+        [HideInInspector] _DstBlendFactor ("Dst Blend", Float) = 0
+        [HideInInspector] _Zwrite ("Z Write", Float) = 1
     }
 
     SubShader
@@ -54,6 +58,8 @@
         Pass
         {
             Tags { "LightMode" = "ForwardBase" }
+            Blend [_SrcBlendFactor] [_DstBlendFactor]
+            ZWrite [_Zwrite]
 
             CGPROGRAM
             #pragma vertex vert
@@ -62,6 +68,7 @@
             #pragma multi_compile _ VERTEXLIGHT_ON
             
             #pragma shader_feature _ USE_NORMAL_MAP
+            #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT
 
             #define UNITY_SPECCUBE_LOD_STEPS 6
 
@@ -78,6 +85,7 @@
             fixed4 _EmissiveColor;
             
             half _Reflectivity;
+            half _AlphaThreshold;
 
             VS_OUT vert (VS_IN v)
             {
@@ -100,6 +108,17 @@
 
             fixed4 frag (VS_OUT fs_in) : SV_Target
             {
+                // main directional light
+                fixed4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
+
+                #ifdef RENDER_MODE_CUTOUT
+                clip(A.a - _AlphaThreshold);
+                #endif
+
+                #ifdef RENDER_MODE_TRANSPARENT //premultiplied alpha blending
+                A.rgb *= A.a;
+                #endif
+
                 half3 normal = fs_in.normalW;
                 #ifdef USE_NORMAL_MAP 
                 half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
@@ -107,8 +126,6 @@
                 normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
                 #endif
 
-                // main directional light
-                fixed4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
                 // diffuse, specular
                 half3 C = PhongLighting(fs_in, normal, A.rgb, _SpecColor.rgb, _Shininess);
 
@@ -131,7 +148,15 @@
                 half3 R = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, sampleDir, roughness * UNITY_SPECCUBE_LOD_STEPS).rgb;
                 finalColor += R;
 
-                return  fixed4(finalColor, A.a);
+                half alpha = 1;
+                #if defined(RENDER_MODE_FADE)
+                    alpha = A.a;
+                #endif
+                #if defined(RENDER_MODE_TRANSPARENT)
+                    alpha = saturate(1 - (1-A.a) * (1-_Reflectivity));
+                #endif
+               
+                return  fixed4(finalColor, alpha);
             }
             ENDCG
         }
@@ -140,24 +165,27 @@
         Pass 
         {
                 Tags {"LightMode" = "ForwardAdd"}
-                Blend One One
-                ZWrite False
+                Blend [_SrcBlendFactor] One
+                ZWrite Off
 
                 CGPROGRAM
                 #pragma vertex vert
                 #pragma fragment frag
                 #pragma multi_compile_fwdadd
                 #pragma multi_compile _ SHADOWS_SCREEN
+                
                 #pragma shader_feature _ USE_NORMAL_MAP
-
+                #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT 
+                
                 #include "PhongLighting.cginc"
                 
                 sampler2D _AlbedoMap;
                 sampler2D _NormalMap;
-                float4 _AlbedoMap_ST;
-                float4 _MainColor;
-                float _Shininess;
-
+                half4 _AlbedoMap_ST;
+                fixed4 _MainColor;
+                half _Shininess;
+                half _AlphaThreshold;
+                half _Reflectivity;
 
                 VS_OUT vert (VS_IN v)
                 {
@@ -173,6 +201,16 @@
 
                 fixed4 frag (VS_OUT fs_in) : SV_Target
                 {   
+                    half4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
+                    
+                    #ifdef RENDER_MODE_CUTOUT
+                    clip(A.a - _AlphaThreshold);
+                    #endif
+
+                    #ifdef RENDER_MODE_TRANSPARENT 
+                    A.rgb *= A.a;
+                    #endif
+
                     half3 normal = fs_in.normalW;
                     #ifdef USE_NORMAL_MAP
                     half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
@@ -180,9 +218,17 @@
                     normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
                     #endif
 
-                    half4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
                     half3 C = PhongLighting(fs_in, normal, A.rgb, _SpecColor, _Shininess);
-                    return fixed4(C, A.a);
+
+                    half alpha = 1;
+                    #if defined(RENDER_MODE_FADE) 
+                        alpha = A.a;
+                    #endif
+                    #if defined(RENDER_MODE_TRANSPARENT)
+                        alpha = saturate(1 - (1-A.a) * (1-_Reflectivity));
+                    #endif
+
+                    return fixed4(C, alpha);
                 }
 
 
