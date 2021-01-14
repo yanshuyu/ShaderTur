@@ -12,12 +12,16 @@ public class PhongLigtingShaderGUI : ShaderGUI
     static string PropertyName_EmissiveMap = "_EmissiveMap";
     static string PropertyName_EmissiveColor = "_EmissiveColor";
     static string PropertyName_AlphaThreshold = "_AlphaThreshold";
-    static string PropertyName_Reflectivity = "_Reflectivity";
+    static string PropertyName_SpecReflectivity = "_SpecReflectivity";
     static string PropertyName_ScrBlendFactor = "_SrcBlendFactor";
     static string PropertyName_DstBlendFactor = "_DstBlendFactor";
     static string PropertyName_ZWrite = "_Zwrite";
+    static string PropertyName_EnvReflectivity = "_EnvReflectivity";
+    static string PropertyName_EnvReflectStrength = "_EnvReflectStrength";
 
-    static string KeyWord_UseNormalMap = "USE_NORMAL_MAP";
+    static string KeyWord_NormalMap_Enabled = "NORMAL_MAP_ENABLED";
+    static string KeyWord_Environment_Reflection_Enabled = "ENVRONMENT_REFLCTION_ENABLED";
+    static string KeyWord_Environment_Reflection_Box_Projection_Enabled = "ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED";
     static string KeyWord_RenderMode_Opaque = "RENDER_MODE_OPAQUE";
     static string KeyWord_RenderMode_Cutout = "RENDER_MODE_CUTOUT";
     static string KeyWord_RenderMode_Fade = "RENDER_MODE_FADE";
@@ -105,8 +109,10 @@ public class PhongLigtingShaderGUI : ShaderGUI
             MaterialProperty alphaThreshold = FindProperty(PropertyName_AlphaThreshold, properties);
             editor.ShaderProperty(alphaThreshold, GUILableForProperty(alphaThreshold));
         } else if (renderMode == RenderMode.Transparent) {
-            MaterialProperty rel = FindProperty(PropertyName_Reflectivity, properties);
+            MaterialProperty rel = FindProperty(PropertyName_SpecReflectivity, properties);
+            EditorGUI.indentLevel += 2;
             editor.ShaderProperty(rel, GUILableForProperty(rel));
+            EditorGUI.indentLevel -= 2;
         }
 
 
@@ -123,7 +129,7 @@ public class PhongLigtingShaderGUI : ShaderGUI
         EditorGUI.BeginChangeCheck();
         editor.TexturePropertySingleLine(GUILableForProperty(normalMap), normalMap);
         if (EditorGUI.EndChangeCheck()) {
-            SetKeyWordEnabled(KeyWord_UseNormalMap, normalMap.textureValue);
+            SetKeyWordEnabled(KeyWord_NormalMap_Enabled, normalMap.textureValue);
         }
         
 
@@ -133,7 +139,29 @@ public class PhongLigtingShaderGUI : ShaderGUI
         editor.ShaderProperty(specColor, GUILableForProperty(specColor));
         editor.ShaderProperty(shininess, GUILableForProperty(shininess));
 
-        editor.TextureScaleOffsetProperty(abledoMap);
+        // environment reflection probe
+        bool envReflEnabled = activeMaterial.IsKeywordEnabled(KeyWord_Environment_Reflection_Enabled);
+        EditorGUI.BeginChangeCheck();
+        envReflEnabled = EditorGUILayout.Toggle("Environment Reflection", envReflEnabled);
+        if (EditorGUI.EndChangeCheck()) {
+            SetKeyWordEnabled(KeyWord_Environment_Reflection_Enabled, envReflEnabled);
+        }
+        if (envReflEnabled) {
+            MaterialProperty reltivity = FindProperty(PropertyName_EnvReflectivity, properties);
+            MaterialProperty relStren = FindProperty(PropertyName_EnvReflectStrength, properties);
+            bool boxProjEnabled = activeMaterial.IsKeywordEnabled(KeyWord_Environment_Reflection_Box_Projection_Enabled);
+            EditorGUI.indentLevel += 2;
+            EditorGUI.BeginChangeCheck();
+            boxProjEnabled = EditorGUILayout.Toggle("Box Projection", boxProjEnabled);
+            if(EditorGUI.EndChangeCheck()) {
+                SetKeyWordEnabled(KeyWord_Environment_Reflection_Box_Projection_Enabled, boxProjEnabled);
+            }
+            editor.ShaderProperty(reltivity, GUILableForProperty(reltivity));
+            editor.ShaderProperty(relStren, GUILableForProperty(relStren));
+            EditorGUI.indentLevel -= 2;
+        }
 
+
+        editor.TextureScaleOffsetProperty(abledoMap);
     }
 }

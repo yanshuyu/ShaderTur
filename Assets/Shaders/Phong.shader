@@ -9,11 +9,15 @@
         _Shininess ("Shininess", Range(0.0, 1.0)) = 0.5
         _EmissiveMap ("Emissive(RGB)", 2D) = "balck" {}
         _EmissiveColor ("Emissive Color(RGB)", Color) = (0.0, 0.0, 0.0 , 1.0)
-        _Reflectivity ("Reflectivity", Range(0, 1)) = 0.5
+        _SpecReflectivity ("Specular Reflectivity", Range(0, 1)) = 0.5
         _AlphaThreshold ("Alpha Cutout Threshold", Range(0, 1)) = 0.1
+        _EnvReflectivity ("Reflectivity", Range(0, 1)) = 0.5
+        _EnvReflectStrength ("Strength", Range(0, 1)) = 0.5
+
         [HideInInspector] _SrcBlendFactor ("Src Blend", Float) = 1
         [HideInInspector] _DstBlendFactor ("Dst Blend", Float) = 0
         [HideInInspector] _Zwrite ("Z Write", Float) = 1
+        
     }
 
     SubShader
@@ -67,7 +71,9 @@
             #pragma multi_compile _ SHADOWS_SCREEN
             #pragma multi_compile _ VERTEXLIGHT_ON
             
-            #pragma shader_feature _ USE_NORMAL_MAP
+            #pragma shader_feature NORMAL_MAP_ENABLED
+            #pragma shader_feature ENVRONMENT_REFLCTION_ENABLED
+            #pragma shader_feature ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
             #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT
 
             #define UNITY_SPECCUBE_LOD_STEPS 6
@@ -84,8 +90,11 @@
             sampler2D _EmissiveMap;
             fixed4 _EmissiveColor;
             
-            half _Reflectivity;
+            half _SpecReflectivity;
             half _AlphaThreshold;
+            
+            half _EnvReflectivity;
+            half _EnvReflectStrength;
 
             VS_OUT vert (VS_IN v)
             {
@@ -120,7 +129,7 @@
                 #endif
 
                 half3 normal = fs_in.normalW;
-                #ifdef USE_NORMAL_MAP 
+                #ifdef NORMAL_MAP_ENABLED 
                 half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
                 half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
                 normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
@@ -142,18 +151,24 @@
                 finalColor += saturate(ShadeSH9(half4(fs_in.normalW, 1))); 
 
                 // environment reflection
+                #ifdef ENVRONMENT_REFLCTION_ENABLED
                 half3 V = UnityWorldSpaceViewDir(fs_in.posW);
                 half3 sampleDir = reflect(-V, normal);
-                half roughness = 1 - _Reflectivity;
-                half3 R = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, sampleDir, roughness * UNITY_SPECCUBE_LOD_STEPS).rgb;
-                finalColor += R;
+                #ifdef ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
+                sampleDir = BoxProjection(sampleDir, fs_in.posW, unity_SpecCube0_ProbePosition, unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax);
+                #endif
+                half roughness = 1 - _EnvReflectivity;
+                half4 R = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, sampleDir, roughness * UNITY_SPECCUBE_LOD_STEPS);
+                R.rgb = DecodeHDR(R, unity_SpecCube0_HDR);
+                finalColor += R.rgb * _EnvReflectStrength;
+                #endif
 
                 half alpha = 1;
                 #if defined(RENDER_MODE_FADE)
                     alpha = A.a;
                 #endif
                 #if defined(RENDER_MODE_TRANSPARENT)
-                    alpha = saturate(1 - (1-A.a) * (1-_Reflectivity));
+                    alpha = saturate(1 - (1-A.a) * (1-_SpecReflectivity));
                 #endif
                
                 return  fixed4(finalColor, alpha);
@@ -174,7 +189,7 @@
                 #pragma multi_compile_fwdadd
                 #pragma multi_compile _ SHADOWS_SCREEN
                 
-                #pragma shader_feature _ USE_NORMAL_MAP
+                #pragma shader_feature _ NORMAL_MAP_ENABLED
                 #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT 
                 
                 #include "PhongLighting.cginc"
@@ -185,7 +200,7 @@
                 fixed4 _MainColor;
                 half _Shininess;
                 half _AlphaThreshold;
-                half _Reflectivity;
+                half _SpecReflectivity;
 
                 VS_OUT vert (VS_IN v)
                 {
@@ -212,7 +227,7 @@
                     #endif
 
                     half3 normal = fs_in.normalW;
-                    #ifdef USE_NORMAL_MAP
+                    #ifdef NORMAL_MAP_ENABLED
                     half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
                     half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
                     normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
@@ -225,7 +240,7 @@
                         alpha = A.a;
                     #endif
                     #if defined(RENDER_MODE_TRANSPARENT)
-                        alpha = saturate(1 - (1-A.a) * (1-_Reflectivity));
+                        alpha = saturate(1 - (1-A.a) * (1-_SpecReflectivity));
                     #endif
 
                     return fixed4(C, alpha);
@@ -233,6 +248,12 @@
 
 
                 ENDCG
+        }
+
+        Pass {
+            Tags {
+                "LightMode" = "Deferred"
+            }
         }
     }
 

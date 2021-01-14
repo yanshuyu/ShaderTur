@@ -43,4 +43,11 @@ half3 PhongLighting(VS_OUT vs_out, half3 normalW, fixed3 Albedo, fixed3 Spec, ha
     return D + S;
 }
 
+
+float3 BoxProjection ( float3 sampleDir, float3 samplePos, float3 boxPos, float3 boxMin, float3 boxMax ) {
+	float3 factors = ((sampleDir > 0 ? boxMax : boxMin) - samplePos) / sampleDir;
+	float scalar = min(min(factors.x, factors.y), factors.z);
+	return sampleDir * scalar + (samplePos - boxPos);
+}
+
 #endif
