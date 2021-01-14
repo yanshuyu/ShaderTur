@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Phong
   m_Shader: {fileID: 4800000, guid: 72d7cdf3811854b82816e747eb9292a4, type: 3}
-  m_ShaderKeywords: _RENDERMODE_OPAQUE
+  m_ShaderKeywords: ENVRONMENT_REFLCTION_ENABLED _RENDERMODE_OPAQUE
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -76,6 +76,9 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendFactor: 0
+    - _EnvReflectStrength: 0.81
+    - _EnvReflection: 0
+    - _EnvReflectivity: 1
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
@@ -83,10 +86,11 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _Reflectivity: 0.5
+    - _Reflectivity: 0.84
     - _RenderMode: 0
     - _Shininess: 1
     - _SmoothnessTextureChannel: 0
+    - _SpecReflectivity: 0.5
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendFactor: 1
@@ -97,6 +101,6 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
-    - _MainColor: {r: 0.9716981, g: 0.9716981, b: 0.9716981, a: 0.79607844}
+    - _MainColor: {r: 0, g: 0, b: 0, a: 0.79607844}
     - _SpecColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

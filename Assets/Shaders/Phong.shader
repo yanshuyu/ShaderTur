@@ -76,8 +76,6 @@
             #pragma shader_feature ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
             #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT
 
-            #define UNITY_SPECCUBE_LOD_STEPS 6
-
             #include "PhongLighting.cginc"
 
             sampler2D _AlbedoMap;
@@ -254,6 +252,117 @@
             Tags {
                 "LightMode" = "Deferred"
             }
+
+            CGPROGRAM
+            #pragma multi_compile _ VERTEXLIGHT_ON
+            #pragma multi_compile _ UNITY_HDR_ON
+            #pragma shader_feature _ RENDER_MODE_CUTOUT
+            #pragma shader_feature NORMAL_MAP_ENABLED
+            #pragma shader_feature ENVRONMENT_REFLCTION_ENABLED
+            #pragma shader_feature ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
+            
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "PhongLighting.cginc"
+
+            sampler2D _AlbedoMap;
+            half4 _AlbedoMap_ST;
+            fixed4 _MainColor;
+
+            half _AlphaThreshold;
+            half _Shininess;
+            half _EnvReflectivity;
+            half _EnvReflectStrength;
+
+            sampler2D _NormalMap;
+
+            sampler2D _EmissiveMap;
+            fixed4 _EmissiveColor;
+
+            struct FS_OUT {
+                float4 gBuffer0 : SV_Target0;
+                float4 gBuffer1 : SV_Target1;
+                float4 gBuffer2 : SV_Target2;
+                float4 gBuffer3 : SV_Target3;
+            };
+
+            VS_OUT vert( VS_IN v) {
+                VS_OUT vsOut;
+                vsOut.pos = UnityObjectToClipPos(v.vertex);
+                vsOut.normalW = UnityObjectToWorldNormal(v.normal);
+                vsOut.tangentW =  float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+                vsOut.posW = mul(unity_ObjectToWorld, v.vertex).xyz;
+                vsOut.uv = TRANSFORM_TEX(v.uv, _AlbedoMap);
+                #ifdef VERTEXLIGHT_ON
+                vsOut.vertLightColor = Shade4PointLights(unity_4LightPosX0, unity_4LightPosY0, unity_4LightPosZ0,
+                    unity_LightColor[0].rgb, unity_LightColor[1].rgb, unity_LightColor[2].rgb, unity_LightColor[3].rgb,
+                    unity_4LightAtten0, vsOut.posW, vsOut.normalW); //* D.rgb;
+                #endif
+                
+                return vsOut;
+            }
+
+            FS_OUT frag(VS_OUT fsIn) {
+                FS_OUT fsOut;
+                // albedo & occlusion
+                fixed4 A = tex2D(_AlbedoMap, fsIn.uv) * _MainColor;
+                #ifdef RENDER_MODE_CUTOUT
+                clip(A.a - _AlphaThreshold);
+                #endif
+                fsOut.gBuffer0.rgb = A.rgb;
+                fsOut.gBuffer0.a = 1;
+
+                // specular & smoothness
+                fsOut.gBuffer1.rgb = _SpecColor.rgb;
+                fsOut.gBuffer1.a = _Shininess;
+
+                // world space normal
+                half3 normal = fsIn.normalW;
+                #ifdef NORMAL_MAP_ENABLED
+                half3 normalT = UnpackNormal(tex2D(_NormalMap, fsIn.uv));
+                half3 biTangentW = normalize(cross(fsIn.normalW, fsIn.tangentW.xyz) * fsIn.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
+                normal = normalize(normalT.x * fsIn.tangentW.xyz + normalT.y * biTangentW + normalT.z * fsIn.normalW);
+                #endif
+                fsOut.gBuffer2.rgb = normal * 0.5 + 0.5;
+                fsOut.gBuffer2.a = 0;
+
+                // Light accumulation (Emission, Ambient, environment reflection...)
+                half3 C = (0,0,0);
+
+                // emissive
+                half3 E = tex2D(_EmissiveMap, fsIn.uv).rgb * _EmissiveColor.rgb;
+                C += E; 
+                
+                #ifdef VERTEXLIGHT_ON
+                    C += fsIn.vertLightColor * A.rgb;
+                #endif
+                
+                C += saturate(ShadeSH9(half4(fsIn.normalW, 1)));
+
+                // #ifdef ENVRONMENT_REFLCTION_ENABLED
+                // half3 V = UnityWorldSpaceViewDir(fsIn.posW);
+                // half3 sampleDir = reflect(-V, normal);
+                // #ifdef ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
+                // sampleDir = BoxProjection(sampleDir, fsIn.posW, unity_SpecCube0_ProbePosition, unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax);
+                // #endif
+                // half roughness = 1 - _EnvReflectivity;
+                // half4 R = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, sampleDir, roughness * UNITY_SPECCUBE_LOD_STEPS);
+                // R.rgb = DecodeHDR(R, unity_SpecCube0_HDR);
+                // C += R.rgb * _EnvReflectStrength;
+                // #endif
+
+                #if !defined(UNITY_HDR_ON)
+                C = exp2(-C.rgb);
+                #endif
+
+                fsOut.gBuffer3.rgb = C;
+
+                return fsOut;
+            }
+
+
+            ENDCG
         }
     }
 

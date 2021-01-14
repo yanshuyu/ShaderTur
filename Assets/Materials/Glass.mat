@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Glass
   m_Shader: {fileID: 4800000, guid: 72d7cdf3811854b82816e747eb9292a4, type: 3}
-  m_ShaderKeywords: RENDER_MODE_FADE
+  m_ShaderKeywords: RENDER_MODE_TRANSPARENT
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -75,6 +75,9 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendFactor: 10
+    - _EnvReflectStrength: 0.5
+    - _EnvReflection: 0
+    - _EnvReflectivity: 0.85
     - _Gloss: 0.5
     - _GlossMapScale: 1
     - _Glossiness: 0.5
@@ -84,13 +87,14 @@ Material:
     - _OcclusionStrength: 1
     - _Opacity: 0.902
     - _Parallax: 0.02
-    - _Reflectivity: 0.17
+    - _Reflectivity: 0.71
     - _RimPow: 1
     - _Shininess: 0.44
     - _SmoothnessTextureChannel: 0
+    - _SpecReflectivity: 0.42
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _SrcBlendFactor: 5
+    - _SrcBlendFactor: 1
     - _UVSec: 0
     - _ZWrite: 1
     - _Zwrite: 0
@@ -98,7 +102,7 @@ Material:
     - _Color: {r: 0.4669811, g: 0.742139, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
-    - _MainColor: {r: 0.29703632, g: 0.5076462, b: 0.7075472, a: 0.4627451}
+    - _MainColor: {r: 0.29703632, g: 0.5076462, b: 0.7075472, a: 0.7176471}
     - _RimColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpecColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

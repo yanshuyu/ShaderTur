@@ -5,6 +5,8 @@
 #include "UnityLightingCommon.cginc"
 #include "AutoLight.cginc"
 
+#define UNITY_SPECCUBE_LOD_STEPS 6
+
 struct VS_IN
 {
     float4 vertex : POSITION;
@@ -16,13 +18,13 @@ struct VS_IN
 struct VS_OUT
 {
     float4 pos : SV_POSITION;
+    float4 tangentW : TANGENT;
     float3 normalW : NORMAL;
     float3 posW : TEXCOORD0;
-    float4 tangentW : TEXCOORD1;
-    float2 uv : TEXCOORD2;
-    SHADOW_COORDS(3)
+    float2 uv : TEXCOORD1;
+    SHADOW_COORDS(2)
     #ifdef VERTEXLIGHT_ON
-    float3 vertLightColor : TEXCOORD4;
+    float3 vertLightColor : TEXCOORD3;
     #endif
 };
 

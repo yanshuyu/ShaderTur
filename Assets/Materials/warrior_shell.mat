@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: warrior_shell
   m_Shader: {fileID: 4800000, guid: 72d7cdf3811854b82816e747eb9292a4, type: 3}
-  m_ShaderKeywords: USE_NORMAL_MAP
+  m_ShaderKeywords: NORMAL_MAP_ENABLED USE_NORMAL_MAP
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -77,6 +77,9 @@ Material:
     - _DstBlend: 0
     - _DstBlendFactor: 0
     - _Emissive: 0
+    - _EnvReflectStrength: 0.5
+    - _EnvReflection: 0
+    - _EnvReflectivity: 0.5
     - _Gloss: 0.5
     - _GlossMapScale: 1
     - _Glossiness: 0.5
@@ -88,8 +91,9 @@ Material:
     - _Reflectivity: 0
     - _RenderMode: 0
     - _RimPow: 1
-    - _Shininess: 0.28
+    - _Shininess: 0.54
     - _SmoothnessTextureChannel: 0
+    - _SpecReflectivity: 0.5
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendFactor: 1
@@ -102,5 +106,5 @@ Material:
     - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
     - _MainColor: {r: 1, g: 1, b: 1, a: 1}
     - _RimColor: {r: 0, g: 0, b: 0, a: 1}
-    - _SpecColor: {r: 0.990566, g: 0.990566, b: 0.990566, a: 1}
+    - _SpecColor: {r: 0.509434, g: 0.509434, b: 0.509434, a: 1}
   m_BuildTextureStacks: []
