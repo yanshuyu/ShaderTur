@@ -11,6 +11,8 @@ public class PhongLigtingShaderGUI : ShaderGUI
     static string PropertyName_Shininess = "_Shininess";
     static string PropertyName_EmissiveMap = "_EmissiveMap";
     static string PropertyName_EmissiveColor = "_EmissiveColor";
+    static string PropertyName_OcclusionMap = "_OcclusionMap";
+    static string  PropertyName_OcclusionStren = "_OcclusionStrength";
     static string PropertyName_AlphaThreshold = "_AlphaThreshold";
     static string PropertyName_SpecReflectivity = "_SpecReflectivity";
     static string PropertyName_ScrBlendFactor = "_SrcBlendFactor";
@@ -20,6 +22,7 @@ public class PhongLigtingShaderGUI : ShaderGUI
     static string PropertyName_EnvReflectStrength = "_EnvReflectStrength";
 
     static string KeyWord_NormalMap_Enabled = "NORMAL_MAP_ENABLED";
+    static string keyWord_OcclusionMap_Enabled = "OCCLUSION_MAP_ENABLED";
     static string KeyWord_Environment_Reflection_Enabled = "ENVRONMENT_REFLCTION_ENABLED";
     static string KeyWord_Environment_Reflection_Box_Projection_Enabled = "ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED";
     static string KeyWord_RenderMode_Opaque = "RENDER_MODE_OPAQUE";
@@ -123,6 +126,14 @@ public class PhongLigtingShaderGUI : ShaderGUI
         // emission
         MaterialProperty emissiveMap = FindProperty(PropertyName_EmissiveMap, properties);
         editor.TexturePropertySingleLine(GUILableForProperty(emissiveMap), emissiveMap, FindProperty(PropertyName_EmissiveColor, properties));
+
+        MaterialProperty occlusionMap = FindProperty(PropertyName_OcclusionMap, properties);
+        EditorGUI.BeginChangeCheck();
+        editor.TexturePropertySingleLine(GUILableForProperty(occlusionMap), occlusionMap, occlusionMap.textureValue ? FindProperty(PropertyName_OcclusionStren, properties) : null);
+       if(EditorGUI.EndChangeCheck()) {
+           SetKeyWordEnabled(keyWord_OcclusionMap_Enabled, occlusionMap.textureValue);
+       }
+
 
         // normal map
         MaterialProperty normalMap = FindProperty(PropertyName_NormalMap, properties);

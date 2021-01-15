@@ -5,10 +5,12 @@
         _AlbedoMap ("Albedo(RGBA)", 2D) = "white" {}
         _MainColor ("Main Color(RGBA)", Color) = (0.8, 0.8, 0.8, 1.0)
         _NormalMap ("Normal Map", 2D) = "bump" {}
-        _SpecColor ("Specular Color", Color) = (1, 1, 1, 1)
+        _SpecColor ("Specular Color(RGB)", Color) = (1, 1, 1, 1)
         _Shininess ("Shininess", Range(0.0, 1.0)) = 0.5
         _EmissiveMap ("Emissive(RGB)", 2D) = "balck" {}
         _EmissiveColor ("Emissive Color(RGB)", Color) = (0.0, 0.0, 0.0 , 1.0)
+        _OcclusionMap ("Occlusion Map(R)", 2D) = "white" {}
+        _OcclusionStrength("Occlusion Strength", Range(0, 1)) = 1
         _SpecReflectivity ("Specular Reflectivity", Range(0, 1)) = 0.5
         _AlphaThreshold ("Alpha Cutout Threshold", Range(0, 1)) = 0.1
         _EnvReflectivity ("Reflectivity", Range(0, 1)) = 0.5
@@ -72,6 +74,7 @@
             #pragma multi_compile _ VERTEXLIGHT_ON
             
             #pragma shader_feature NORMAL_MAP_ENABLED
+            #pragma shader_feature OCCLUSION_MAP_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
             #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT
@@ -87,6 +90,9 @@
 
             sampler2D _EmissiveMap;
             fixed4 _EmissiveColor;
+
+            sampler2D _OcclusionMap;
+            half _OcclusionStrength;
             
             half _SpecReflectivity;
             half _AlphaThreshold;
@@ -132,22 +138,25 @@
                 half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
                 normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
                 #endif
-
+                
+                // direct light
                 // diffuse, specular
-                half3 C = PhongLighting(fs_in, normal, A.rgb, _SpecColor.rgb, _Shininess);
+                half3 directLight = PhongLighting(fs_in, normal, A.rgb, _SpecColor.rgb, _Shininess);
 
                 // emissive
                 half3 E = tex2D(_EmissiveMap, fs_in.uv).rgb * _EmissiveColor.rgb;
-                half3 finalColor = C + E; 
 
+                // indirect lights (diffuse reflection)
                 // 4 vert lit point light
+                half3 indirectLight = (0, 0, 0);
                 #ifdef VERTEXLIGHT_ON
-                    finalColor += fs_in.vertLightColor * A.rgb; 
+                    indirectLight += fs_in.vertLightColor * A.rgb; 
                 #endif
                 
                 // Spherical Harmonics 
-                finalColor += saturate(ShadeSH9(half4(fs_in.normalW, 1))); 
+                indirectLight += saturate(ShadeSH9(half4(fs_in.normalW, 1))); 
 
+                // indirect lights (specular reflection)
                 // environment reflection
                 #ifdef ENVRONMENT_REFLCTION_ENABLED
                 half3 V = UnityWorldSpaceViewDir(fs_in.posW);
@@ -158,7 +167,12 @@
                 half roughness = 1 - _EnvReflectivity;
                 half4 R = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, sampleDir, roughness * UNITY_SPECCUBE_LOD_STEPS);
                 R.rgb = DecodeHDR(R, unity_SpecCube0_HDR);
-                finalColor += R.rgb * _EnvReflectStrength;
+                indirectLight += R.rgb * _EnvReflectStrength;
+                #endif
+
+                #ifdef OCCLUSION_MAP_ENABLED
+                half occlusion = lerp(1, tex2D(_OcclusionMap, fs_in.uv).r, _OcclusionStrength);
+                indirectLight *= occlusion;
                 #endif
 
                 half alpha = 1;
@@ -169,7 +183,7 @@
                     alpha = saturate(1 - (1-A.a) * (1-_SpecReflectivity));
                 #endif
                
-                return  fixed4(finalColor, alpha);
+                return  fixed4(directLight + E + indirectLight, alpha);
             }
             ENDCG
         }
@@ -258,6 +272,7 @@
             #pragma multi_compile _ UNITY_HDR_ON
             #pragma shader_feature _ RENDER_MODE_CUTOUT
             #pragma shader_feature NORMAL_MAP_ENABLED
+            #pragma shader_feature OCCLUSION_MAP_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
             
@@ -279,6 +294,9 @@
 
             sampler2D _EmissiveMap;
             fixed4 _EmissiveColor;
+
+            sampler2D _OcclusionMap;
+            half _OcclusionStrength;
 
             struct FS_OUT {
                 float4 gBuffer0 : SV_Target0;
@@ -312,6 +330,9 @@
                 #endif
                 fsOut.gBuffer0.rgb = A.rgb;
                 fsOut.gBuffer0.a = 1;
+                #ifdef OCCLUSION_MAP_ENABLED
+                fsOut.gBuffer0.a = lerp(1,tex2D(_OcclusionMap, fsIn.uv).r, _OcclusionStrength); 
+                #endif
 
                 // specular & smoothness
                 fsOut.gBuffer1.rgb = _SpecColor.rgb;
@@ -327,13 +348,11 @@
                 fsOut.gBuffer2.rgb = normal * 0.5 + 0.5;
                 fsOut.gBuffer2.a = 0;
 
-                // Light accumulation (Emission, Ambient, environment reflection...)
-                half3 C = (0,0,0);
-
                 // emissive
                 half3 E = tex2D(_EmissiveMap, fsIn.uv).rgb * _EmissiveColor.rgb;
-                C += E; 
                 
+                // Light accumulation (Emission, Ambient, environment reflection...)
+                half3 C = (0,0,0);
                 #ifdef VERTEXLIGHT_ON
                     C += fsIn.vertLightColor * A.rgb;
                 #endif
@@ -356,7 +375,7 @@
                 C = exp2(-C.rgb);
                 #endif
 
-                fsOut.gBuffer3.rgb = C;
+                fsOut.gBuffer3.rgb = C + E;
 
                 return fsOut;
             }
