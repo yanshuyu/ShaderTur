@@ -26,6 +26,9 @@ struct VS_OUT
     #ifdef VERTEXLIGHT_ON
     float3 vertLightColor : TEXCOORD3;
     #endif
+    #if UNITY_FOG   
+    float clipDepth : TEXCOORD4;
+    #endif
 };
 
 
@@ -50,6 +53,12 @@ float3 BoxProjection ( float3 sampleDir, float3 samplePos, float3 boxPos, float3
 	float3 factors = ((sampleDir > 0 ? boxMax : boxMin) - samplePos) / sampleDir;
 	float scalar = min(min(factors.x, factors.y), factors.z);
 	return sampleDir * scalar + (samplePos - boxPos);
+}
+
+half3 ApplyFog(half3 unfogColor, float clipDepth) {
+    float distance = UNITY_Z_0_FAR_FROM_CLIPSPACE(clipDepth);
+    UNITY_CALC_FOG_FACTOR_RAW(distance); // will define unityFogFactor
+    return lerp(unity_FogColor.rgb, unfogColor, saturate(unityFogFactor));
 }
 
 #endif

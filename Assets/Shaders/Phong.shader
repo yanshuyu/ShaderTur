@@ -77,8 +77,13 @@
             #pragma shader_feature OCCLUSION_MAP_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
+            #pragma multi_compile_fog //FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT
 
+            #if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)
+            #define UNITY_FOG 1
+            #endif
+            
             #include "PhongLighting.cginc"
 
             sampler2D _AlbedoMap;
@@ -116,10 +121,14 @@
                     unity_4LightAtten0, o.posW, o.normalW); //* D.rgb;
                 #endif
 
+                #if UNITY_FOG
+                o.clipDepth = o.pos.z;
+                #endif
+
                 return o;
             }
 
-            fixed4 frag (VS_OUT fs_in) : SV_Target
+            half4 frag (VS_OUT fs_in) : SV_Target
             {
                 // main directional light
                 fixed4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
@@ -175,6 +184,7 @@
                 indirectLight *= occlusion;
                 #endif
 
+                half3 totalLight = directLight + E + indirectLight;
                 half alpha = 1;
                 #if defined(RENDER_MODE_FADE)
                     alpha = A.a;
@@ -182,84 +192,99 @@
                 #if defined(RENDER_MODE_TRANSPARENT)
                     alpha = saturate(1 - (1-A.a) * (1-_SpecReflectivity));
                 #endif
+
+                // apply fog
+                #if UNITY_FOG
+                totalLight = ApplyFog(totalLight, fs_in.clipDepth);
+                #endif
                
-                return  fixed4(directLight + E + indirectLight, alpha);
+                return  half4(totalLight, alpha);
             }
             ENDCG
         }
 
 
-        Pass 
-        {
-                Tags {"LightMode" = "ForwardAdd"}
-                Blend [_SrcBlendFactor] One
-                ZWrite Off
+        Pass  {
+            Tags {"LightMode" = "ForwardAdd"}
+            Blend [_SrcBlendFactor] One
+            ZWrite Off
 
-                CGPROGRAM
-                #pragma vertex vert
-                #pragma fragment frag
-                #pragma multi_compile_fwdadd
-                #pragma multi_compile _ SHADOWS_SCREEN
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_fwdadd
+            #pragma multi_compile _ SHADOWS_SCREEN
+            #pragma multi_compile_fog
+            #pragma shader_feature _ NORMAL_MAP_ENABLED
+            #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT 
+
+            #if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)
+            #define UNITY_FOG 1
+            #endif
+            
+            #include "PhongLighting.cginc"
+            
+            sampler2D _AlbedoMap;
+            sampler2D _NormalMap;
+            half4 _AlbedoMap_ST;
+            fixed4 _MainColor;
+            half _Shininess;
+            half _AlphaThreshold;
+            half _SpecReflectivity;
+
+            VS_OUT vert (VS_IN v)
+            {
+                VS_OUT o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.normalW = UnityObjectToWorldNormal(v.normal);
+                o.tangentW =  float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+                o.posW = mul(unity_ObjectToWorld, v.vertex).xyz;
+                o.uv = TRANSFORM_TEX(v.uv, _AlbedoMap);
+                TRANSFER_SHADOW(o);
+                #if UNITY_FOG
+                o.clipDepth = o.pos.z;
+                #endif
+                return o;
+            }
+
+            half4 frag (VS_OUT fs_in) : SV_Target
+            {   
+                half4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
                 
-                #pragma shader_feature _ NORMAL_MAP_ENABLED
-                #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT 
-                
-                #include "PhongLighting.cginc"
-                
-                sampler2D _AlbedoMap;
-                sampler2D _NormalMap;
-                half4 _AlbedoMap_ST;
-                fixed4 _MainColor;
-                half _Shininess;
-                half _AlphaThreshold;
-                half _SpecReflectivity;
+                #ifdef RENDER_MODE_CUTOUT
+                clip(A.a - _AlphaThreshold);
+                #endif
 
-                VS_OUT vert (VS_IN v)
-                {
-                    VS_OUT o;
-                    o.pos = UnityObjectToClipPos(v.vertex);
-                    o.normalW = UnityObjectToWorldNormal(v.normal);
-                    o.tangentW =  float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
-                    o.posW = mul(unity_ObjectToWorld, v.vertex).xyz;
-                    o.uv = TRANSFORM_TEX(v.uv, _AlbedoMap);
-                    TRANSFER_SHADOW(o);
-                    return o;
-                }
+                #ifdef RENDER_MODE_TRANSPARENT 
+                A.rgb *= A.a;
+                #endif
 
-                fixed4 frag (VS_OUT fs_in) : SV_Target
-                {   
-                    half4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
-                    
-                    #ifdef RENDER_MODE_CUTOUT
-                    clip(A.a - _AlphaThreshold);
-                    #endif
+                half3 normal = fs_in.normalW;
+                #ifdef NORMAL_MAP_ENABLED
+                half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
+                half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
+                normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
+                #endif
 
-                    #ifdef RENDER_MODE_TRANSPARENT 
-                    A.rgb *= A.a;
-                    #endif
+                half3 C = PhongLighting(fs_in, normal, A.rgb, _SpecColor, _Shininess);
+                half alpha = 1;
+                #if defined(RENDER_MODE_FADE) 
+                    alpha = A.a;
+                #endif
+                #if defined(RENDER_MODE_TRANSPARENT)
+                    alpha = saturate(1 - (1-A.a) * (1-_SpecReflectivity));
+                #endif
 
-                    half3 normal = fs_in.normalW;
-                    #ifdef NORMAL_MAP_ENABLED
-                    half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
-                    half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
-                    normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
-                    #endif
+                // apply fog
+                #if UNITY_FOG
+                C = ApplyFog(C, fs_in.clipDepth);
+                #endif
 
-                    half3 C = PhongLighting(fs_in, normal, A.rgb, _SpecColor, _Shininess);
-
-                    half alpha = 1;
-                    #if defined(RENDER_MODE_FADE) 
-                        alpha = A.a;
-                    #endif
-                    #if defined(RENDER_MODE_TRANSPARENT)
-                        alpha = saturate(1 - (1-A.a) * (1-_SpecReflectivity));
-                    #endif
-
-                    return fixed4(C, alpha);
-                }
+                return half4(C, alpha);
+            }
 
 
-                ENDCG
+            ENDCG
         }
 
         Pass {
@@ -335,7 +360,7 @@
                 #endif
 
                 // specular & smoothness
-                fsOut.gBuffer1.rgb = _SpecColor.rgb;
+                fsOut.gBuffer1.rgb = _SpecColor.rgb; //gBuffer1.rgb = lerp(F0, tex2D(_AlbedoMap).rgb, _metallic);
                 fsOut.gBuffer1.a = _Shininess;
 
                 // world space normal
