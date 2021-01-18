@@ -91,7 +91,7 @@ Material:
     - _Reflectivity: 0
     - _RenderMode: 0
     - _RimPow: 1
-    - _Shininess: 0.54
+    - _Shininess: 0.892
     - _SmoothnessTextureChannel: 0
     - _SpecReflectivity: 0.5
     - _SpecularHighlights: 1
@@ -103,8 +103,10 @@ Material:
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
+    - _EmissiveColor: {r: 0.018769851, g: 0.01886791, b: 0.018244913, a: 1}
     - _MainColor: {r: 1, g: 1, b: 1, a: 1}
     - _RimColor: {r: 0, g: 0, b: 0, a: 1}
-    - _SpecColor: {r: 0.509434, g: 0.509434, b: 0.509434, a: 1}
+    - _SpecColor: {r: 0.7169812, g: 0.7169812, b: 0.7169812, a: 1}
+    - _SpecularClr: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

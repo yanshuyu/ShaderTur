@@ -105,4 +105,6 @@ Material:
     - _MainColor: {r: 0.29703632, g: 0.5076462, b: 0.7075472, a: 0.7176471}
     - _RimColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpecColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularClr: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

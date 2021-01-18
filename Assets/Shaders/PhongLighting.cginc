@@ -48,6 +48,20 @@ half3 PhongLighting(VS_OUT vs_out, half3 normalW, fixed3 Albedo, fixed3 Spec, ha
     return D + S;
 }
 
+half3 PhongLightingDeferred(half3 lightColor, float3 posW, float3 normalW, half3 Albedo, half3 Spec, half Shininess) {
+    half3 L = normalize(UnityWorldSpaceLightDir(posW));
+    half3 V = normalize(UnityWorldSpaceViewDir(posW));
+    float NdotL = saturate(dot(normalW, L));
+    half3 I = lightColor * NdotL;
+
+    half3 D = I * Albedo;
+
+    float NdotH =  saturate(dot(normalW, normalize(L + V)));
+    half3 S = pow(NdotH, Shininess * 256) * Spec;
+    
+    return D + S;
+}
+
 
 float3 BoxProjection ( float3 sampleDir, float3 samplePos, float3 boxPos, float3 boxMin, float3 boxMax ) {
 	float3 factors = ((sampleDir > 0 ? boxMax : boxMin) - samplePos) / sampleDir;

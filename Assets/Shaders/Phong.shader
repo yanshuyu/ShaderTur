@@ -353,11 +353,13 @@
                 #ifdef RENDER_MODE_CUTOUT
                 clip(A.a - _AlphaThreshold);
                 #endif
-                fsOut.gBuffer0.rgb = A.rgb;
-                fsOut.gBuffer0.a = 1;
+                half occlusion = 1;
                 #ifdef OCCLUSION_MAP_ENABLED
-                fsOut.gBuffer0.a = lerp(1,tex2D(_OcclusionMap, fsIn.uv).r, _OcclusionStrength); 
+                occlusion = lerp(1,tex2D(_OcclusionMap, fsIn.uv).r, _OcclusionStrength); 
                 #endif
+
+                fsOut.gBuffer0.rgb = A.rgb;
+                fsOut.gBuffer0.a = occlusion;
 
                 // specular & smoothness
                 fsOut.gBuffer1.rgb = _SpecColor.rgb; //gBuffer1.rgb = lerp(F0, tex2D(_AlbedoMap).rgb, _metallic);
@@ -381,26 +383,29 @@
                 #ifdef VERTEXLIGHT_ON
                     C += fsIn.vertLightColor * A.rgb;
                 #endif
-                
                 C += saturate(ShadeSH9(half4(fsIn.normalW, 1)));
 
-                // #ifdef ENVRONMENT_REFLCTION_ENABLED
-                // half3 V = UnityWorldSpaceViewDir(fsIn.posW);
-                // half3 sampleDir = reflect(-V, normal);
-                // #ifdef ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
-                // sampleDir = BoxProjection(sampleDir, fsIn.posW, unity_SpecCube0_ProbePosition, unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax);
-                // #endif
-                // half roughness = 1 - _EnvReflectivity;
-                // half4 R = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, sampleDir, roughness * UNITY_SPECCUBE_LOD_STEPS);
-                // R.rgb = DecodeHDR(R, unity_SpecCube0_HDR);
-                // C += R.rgb * _EnvReflectStrength;
-                // #endif
-
-                #if !defined(UNITY_HDR_ON)
-                C = exp2(-C.rgb);
+                #ifdef ENVRONMENT_REFLCTION_ENABLED
+                half3 V = UnityWorldSpaceViewDir(fsIn.posW);
+                half3 sampleDir = reflect(-V, normal);
+                #ifdef ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
+                sampleDir = BoxProjection(sampleDir, fsIn.posW, unity_SpecCube0_ProbePosition, unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax);
+                #endif
+                half roughness = 1 - _EnvReflectivity;
+                half4 R = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, sampleDir, roughness * UNITY_SPECCUBE_LOD_STEPS);
+                R.rgb = DecodeHDR(R, unity_SpecCube0_HDR);
+                C += R.rgb * _EnvReflectStrength;
                 #endif
 
-                fsOut.gBuffer3.rgb = C + E;
+                C *= occlusion;
+                C += E;
+
+                #if !defined(UNITY_HDR_ON)
+                C = exp2(-C);
+                #endif
+
+                fsOut.gBuffer3.rgb = C;
+                fsOut.gBuffer3.a = 1;
 
                 return fsOut;
             }
