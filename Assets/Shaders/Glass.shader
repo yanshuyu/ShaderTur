@@ -1,4 +1,6 @@
-﻿Shader "Custom/Glass"
+﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
+Shader "Custom/Glass"
 {
     Properties
     {
@@ -10,68 +12,42 @@
 
     SubShader
     {
-        GrabPass { "_GrabSceneTex" }
+        // Draw ourselves after all opaque geometry
+        Tags { "Queue" = "Transparent" }
+ 
+        // Grab the screen behind the object into _MyGrabTexture
+        GrabPass {  }
+       
+        CGPROGRAM
+        #pragma surface surf Lambert vertex:vert addshadow
+        #pragma debug
+ 
+        sampler2D _MainTex;
+        sampler2D _BumpTex;
+        sampler2D _GrabTexture;
 
-        Pass
-        {
-
-            Tags {
-                "Queue" = "Transparent"
-                "RenderType" = "Opaque"
-                "IgnoreProjector" = "True"
-            }
-
-            CGPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-
-            #include "UnityCG.cginc"
-
-            struct appdata
-            {
-                float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
-            struct v2f
-            {
-                float2 uv_MainTex : TEXCOORD0;
-                float4 uv_GrabTex : TEXCOORD1;
-                float4 vertex : SV_POSITION;
-            };
-
-            sampler2D _MainTex;
-            float4 _MainTex_ST;
-            fixed4 _Color;
-
-            sampler2D _BumpTex;
-            half _DistoreAmount;
-
-            sampler2D _GrabSceneTex;
-
-            v2f vert (appdata v)
-            {
-                v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv_MainTex = TRANSFORM_TEX(v.uv, _MainTex);
-                o.uv_GrabTex = ComputeGrabScreenPos(o.vertex);
-                return o;
-            }
-
-            fixed4 frag (v2f i) : SV_Target
-            {
-                // sample the texture
-                fixed4 mainColor = tex2D(_MainTex, i.uv_MainTex) * _Color;
-
-                half2 uvDistore = UnpackNormal(tex2D(_BumpTex, i.uv_MainTex)).xy * _DistoreAmount;
-
-                i.uv_GrabTex.xy += uvDistore;
-
-                fixed4 bgColor = tex2Dproj(_GrabSceneTex, UNITY_PROJ_COORD(i.uv_GrabTex));
-
-                return mainColor * bgColor;
-            }
-            ENDCG
+        fixed4 _Color;
+        float4 _MainTex_ST;
+        half _DistoreAmount;
+ 
+        struct Input {
+            float2 mainUV;
+            float4 grabUV;
+        };
+ 
+        void vert (inout appdata_base v, out Input o) {
+            UNITY_INITIALIZE_OUTPUT(Input, o);
+            o.mainUV = TRANSFORM_TEX(v.texcoord, _MainTex);
+            o.grabUV = ComputeGrabScreenPos(UnityObjectToClipPos(v.vertex));
         }
+ 
+        void surf (Input i, inout SurfaceOutput o) {
+            fixed4 Col = tex2D(_MainTex, i.mainUV) * _Color;
+            half2 uvDistor = UnpackNormal(tex2D(_BumpTex, i.mainUV)).xy * _DistoreAmount;
+            i.grabUV.xy += uvDistor;
+            o.Albedo = tex2Dproj( _GrabTexture, UNITY_PROJ_COORD(i.grabUV)) * Col;
+        }
+        
+        ENDCG
     }
 }
