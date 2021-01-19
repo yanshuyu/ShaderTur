@@ -7,7 +7,7 @@
         _NormalMap ("Normal Map", 2D) = "bump" {}
         _SpecColor ("Specular Color(RGB)", Color) = (1, 1, 1, 1)
         _Shininess ("Shininess", Range(0.0, 1.0)) = 0.5
-        _EmissiveMap ("Emissive(RGB)", 2D) = "balck" {}
+        _EmissiveMap ("Emissive(RGB)", 2D) = "white" {}
         _EmissiveColor ("Emissive Color(RGB)", Color) = (0.0, 0.0, 0.0 , 1.0)
         _OcclusionMap ("Occlusion Map(R)", 2D) = "white" {}
         _OcclusionStrength("Occlusion Strength", Range(0, 1)) = 1
@@ -71,8 +71,8 @@
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile _ SHADOWS_SCREEN
-            #pragma multi_compile _ VERTEXLIGHT_ON
-            
+            #pragma multi_compile _ VERTEXLIGHT_ON LIGHTMAP_ON // lightMap and VertLit are mutual excludesive
+
             #pragma shader_feature NORMAL_MAP_ENABLED
             #pragma shader_feature OCCLUSION_MAP_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_ENABLED
@@ -113,13 +113,17 @@
                 o.tangentW =  float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
                 o.posW = mul(unity_ObjectToWorld, v.vertex).xyz;
                 o.uv = TRANSFORM_TEX(v.uv, _AlbedoMap);
-                TRANSFER_SHADOW(o);
+                #ifdef LIGHTMAP_ON
+                o.uv_LightMap = v.uv1 * unity_LightmapST.xy + unity_LightmapST.zw; // can't transform by TRANSFORM_TEX case unity_LightmapST is not defined as unity_Lightmap_ST
+                #endif
                 #ifdef VERTEXLIGHT_ON
                 //fixed4 D = tex2D(_AlbedoMap, o.uv) * _MainColor;
                 o.vertLightColor = Shade4PointLights(unity_4LightPosX0, unity_4LightPosY0, unity_4LightPosZ0,
                     unity_LightColor[0].rgb, unity_LightColor[1].rgb, unity_LightColor[2].rgb, unity_LightColor[3].rgb,
                     unity_4LightAtten0, o.posW, o.normalW); //* D.rgb;
                 #endif
+
+                TRANSFER_SHADOW(o);
 
                 #if UNITY_FOG
                 o.clipDepth = o.pos.z;
@@ -158,13 +162,16 @@
                 // indirect lights (diffuse reflection)
                 // 4 vert lit point light
                 half3 indirectLight = (0, 0, 0);
+                #if !defined(LIGHTMAP_ON)
                 #ifdef VERTEXLIGHT_ON
                     indirectLight += fs_in.vertLightColor * A.rgb; 
                 #endif
-                
                 // Spherical Harmonics 
                 indirectLight += saturate(ShadeSH9(half4(fs_in.normalW, 1))); 
-
+                #else
+                indirectLight = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, fs_in.uv_LightMap)); //UNITY_DECLARE_TEX2D(unity_Lightmap)
+                #endif
+                
                 // indirect lights (specular reflection)
                 // environment reflection
                 #ifdef ENVRONMENT_REFLCTION_ENABLED
@@ -410,6 +417,53 @@
                 return fsOut;
             }
 
+
+            ENDCG
+        }
+
+        pass {
+            Tags { "LightMode" = "Meta" }
+            Cull Off
+
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "UnityCG.cginc"
+            #include "UnityMetaPass.cginc"
+
+            sampler2D _AlbedoMap;
+            sampler2D _EmissiveMap;
+            float4 _AlbedoMap_ST;
+            fixed _MainColor;
+            fixed4 _EmissiveColor;
+            
+            struct appdata {
+                float4 vertex : POSITION;
+                float2 uv : TEXCOORD0;
+                float2 uv1 : TEXCOORD1;
+            };
+
+            struct v2f {
+                float4 pos : SV_POSITION;
+                float2 uv : TEXCOORD0;
+            };
+
+            v2f vert(appdata v) {
+                v2f o;
+                v.vertex.xy = v.uv1 * unity_LightmapST.xy + unity_LightmapST.zw; //transform to lightMap space
+                v.vertex.z = v.vertex.z > 0 ? 0.001 : 0;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.uv = TRANSFORM_TEX(v.uv, _AlbedoMap);
+                return o;
+            }
+
+            float4 frag(v2f i): SV_Target { // perform pass twice to output albedo and emission
+                UnityMetaInput mi;
+                mi.Albedo = (1, 0, 0 , 1);
+                mi.Emission = tex2D(_EmissiveMap, i.uv) * _EmissiveColor;
+                return UnityMetaFragment(mi);
+            }
 
             ENDCG
         }

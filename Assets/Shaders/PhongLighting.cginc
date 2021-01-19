@@ -13,6 +13,7 @@ struct VS_IN
     float3 normal : NORMAL;
     float4 tangent : TANGENT;
     float2 uv : TEXCOORD0;
+    float2 uv1 : TEXCOORD1; // lightMap uv
 };
 
 struct VS_OUT
@@ -22,10 +23,13 @@ struct VS_OUT
     float3 normalW : NORMAL;
     float3 posW : TEXCOORD0;
     float2 uv : TEXCOORD1;
-    SHADOW_COORDS(2)
-    #ifdef VERTEXLIGHT_ON
-    float3 vertLightColor : TEXCOORD3;
+    #ifdef LIGHTMAP_ON
+    float2 uv_LightMap : TEXCOORD2;
     #endif
+    #ifdef VERTEXLIGHT_ON
+    float3 vertLightColor : TEXCOORD2;
+    #endif
+    SHADOW_COORDS(3)
     #if UNITY_FOG   
     float clipDepth : TEXCOORD4;
     #endif
@@ -43,7 +47,7 @@ half3 PhongLighting(VS_OUT vs_out, half3 normalW, fixed3 Albedo, fixed3 Spec, ha
     half3 D = I * Albedo;
 
     float NdotH =  saturate(dot(normalW, normalize(L + V)));
-    half3 S=  pow(NdotH, Shininess * 256) * Spec;
+    half3 S = I * Spec * pow(NdotH, Shininess * 256);
 
     return D + S;
 }
