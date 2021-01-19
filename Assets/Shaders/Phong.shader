@@ -2,8 +2,8 @@
 {
     Properties
     {
-        _AlbedoMap ("Albedo(RGBA)", 2D) = "white" {}
-        _MainColor ("Main Color(RGBA)", Color) = (0.8, 0.8, 0.8, 1.0)
+        _MainTex ("Albedo(RGBA)", 2D) = "white" {}
+        _Color ("Main Color(RGBA)", Color) = (0.8, 0.8, 0.8, 1.0)
         _NormalMap ("Normal Map", 2D) = "bump" {}
         _SpecColor ("Specular Color(RGB)", Color) = (1, 1, 1, 1)
         _Shininess ("Shininess", Range(0.0, 1.0)) = 0.5
@@ -12,7 +12,7 @@
         _OcclusionMap ("Occlusion Map(R)", 2D) = "white" {}
         _OcclusionStrength("Occlusion Strength", Range(0, 1)) = 1
         _SpecReflectivity ("Specular Reflectivity", Range(0, 1)) = 0.5
-        _AlphaThreshold ("Alpha Cutout Threshold", Range(0, 1)) = 0.1
+        _Cutoff ("Alpha Cutout Threshold", Range(0, 1)) = 0.1
         _EnvReflectivity ("Reflectivity", Range(0, 1)) = 0.5
         _EnvReflectStrength ("Strength", Range(0, 1)) = 0.5
 
@@ -86,9 +86,9 @@
             
             #include "PhongLighting.cginc"
 
-            sampler2D _AlbedoMap;
-            half4 _AlbedoMap_ST;
-            fixed4 _MainColor;
+            sampler2D _MainTex;
+            half4 _MainTex_ST;
+            fixed4 _Color;
             fixed _Shininess;
 
             sampler2D _NormalMap;
@@ -100,7 +100,7 @@
             half _OcclusionStrength;
             
             half _SpecReflectivity;
-            half _AlphaThreshold;
+            half _Cutoff;
             
             half _EnvReflectivity;
             half _EnvReflectStrength;
@@ -112,12 +112,12 @@
                 o.normalW = UnityObjectToWorldNormal(v.normal);
                 o.tangentW =  float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
                 o.posW = mul(unity_ObjectToWorld, v.vertex).xyz;
-                o.uv = TRANSFORM_TEX(v.uv, _AlbedoMap);
+                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 #ifdef LIGHTMAP_ON
                 o.uv_LightMap = v.uv1 * unity_LightmapST.xy + unity_LightmapST.zw; // can't transform by TRANSFORM_TEX case unity_LightmapST is not defined as unity_Lightmap_ST
                 #endif
                 #ifdef VERTEXLIGHT_ON
-                //fixed4 D = tex2D(_AlbedoMap, o.uv) * _MainColor;
+                //fixed4 D = tex2D(_MainTex, o.uv) * _Color;
                 o.vertLightColor = Shade4PointLights(unity_4LightPosX0, unity_4LightPosY0, unity_4LightPosZ0,
                     unity_LightColor[0].rgb, unity_LightColor[1].rgb, unity_LightColor[2].rgb, unity_LightColor[3].rgb,
                     unity_4LightAtten0, o.posW, o.normalW); //* D.rgb;
@@ -135,10 +135,10 @@
             half4 frag (VS_OUT fs_in) : SV_Target
             {
                 // main directional light
-                fixed4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
+                fixed4 A = tex2D(_MainTex, fs_in.uv) * _Color;
 
                 #ifdef RENDER_MODE_CUTOUT
-                clip(A.a - _AlphaThreshold);
+                clip(A.a - _Cutoff);
                 #endif
 
                 #ifdef RENDER_MODE_TRANSPARENT //premultiplied alpha blending
@@ -231,12 +231,12 @@
             
             #include "PhongLighting.cginc"
             
-            sampler2D _AlbedoMap;
+            sampler2D _MainTex;
             sampler2D _NormalMap;
-            half4 _AlbedoMap_ST;
-            fixed4 _MainColor;
+            half4 _MainTex_ST;
+            fixed4 _Color;
             half _Shininess;
-            half _AlphaThreshold;
+            half _Cutoff;
             half _SpecReflectivity;
 
             VS_OUT vert (VS_IN v)
@@ -246,7 +246,7 @@
                 o.normalW = UnityObjectToWorldNormal(v.normal);
                 o.tangentW =  float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
                 o.posW = mul(unity_ObjectToWorld, v.vertex).xyz;
-                o.uv = TRANSFORM_TEX(v.uv, _AlbedoMap);
+                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 TRANSFER_SHADOW(o);
                 #if UNITY_FOG
                 o.clipDepth = o.pos.z;
@@ -256,10 +256,10 @@
 
             half4 frag (VS_OUT fs_in) : SV_Target
             {   
-                half4 A = tex2D(_AlbedoMap, fs_in.uv) * _MainColor;
+                half4 A = tex2D(_MainTex, fs_in.uv) * _Color;
                 
                 #ifdef RENDER_MODE_CUTOUT
-                clip(A.a - _AlphaThreshold);
+                clip(A.a - _Cutoff);
                 #endif
 
                 #ifdef RENDER_MODE_TRANSPARENT 
@@ -313,11 +313,11 @@
 
             #include "PhongLighting.cginc"
 
-            sampler2D _AlbedoMap;
-            half4 _AlbedoMap_ST;
-            fixed4 _MainColor;
+            sampler2D _MainTex;
+            half4 _MainTex_ST;
+            fixed4 _Color;
 
-            half _AlphaThreshold;
+            half _Cutoff;
             half _Shininess;
             half _EnvReflectivity;
             half _EnvReflectStrength;
@@ -343,7 +343,7 @@
                 vsOut.normalW = UnityObjectToWorldNormal(v.normal);
                 vsOut.tangentW =  float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
                 vsOut.posW = mul(unity_ObjectToWorld, v.vertex).xyz;
-                vsOut.uv = TRANSFORM_TEX(v.uv, _AlbedoMap);
+                vsOut.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 #ifdef VERTEXLIGHT_ON
                 vsOut.vertLightColor = Shade4PointLights(unity_4LightPosX0, unity_4LightPosY0, unity_4LightPosZ0,
                     unity_LightColor[0].rgb, unity_LightColor[1].rgb, unity_LightColor[2].rgb, unity_LightColor[3].rgb,
@@ -356,9 +356,9 @@
             FS_OUT frag(VS_OUT fsIn) {
                 FS_OUT fsOut;
                 // albedo & occlusion
-                fixed4 A = tex2D(_AlbedoMap, fsIn.uv) * _MainColor;
+                fixed4 A = tex2D(_MainTex, fsIn.uv) * _Color;
                 #ifdef RENDER_MODE_CUTOUT
-                clip(A.a - _AlphaThreshold);
+                clip(A.a - _Cutoff);
                 #endif
                 half occlusion = 1;
                 #ifdef OCCLUSION_MAP_ENABLED
@@ -369,7 +369,7 @@
                 fsOut.gBuffer0.a = occlusion;
 
                 // specular & smoothness
-                fsOut.gBuffer1.rgb = _SpecColor.rgb; //gBuffer1.rgb = lerp(F0, tex2D(_AlbedoMap).rgb, _metallic);
+                fsOut.gBuffer1.rgb = _SpecColor.rgb; //gBuffer1.rgb = lerp(F0, tex2D(_MainTex).rgb, _metallic);
                 fsOut.gBuffer1.a = _Shininess;
 
                 // world space normal
@@ -432,10 +432,10 @@
             #include "UnityCG.cginc"
             #include "UnityMetaPass.cginc"
 
-            sampler2D _AlbedoMap;
+            sampler2D _MainTex;
             sampler2D _EmissiveMap;
-            float4 _AlbedoMap_ST;
-            fixed _MainColor;
+            float4 _MainTex_ST;
+            fixed _Color;
             fixed4 _EmissiveColor;
             
             struct appdata {
@@ -454,13 +454,13 @@
                 v.vertex.xy = v.uv1 * unity_LightmapST.xy + unity_LightmapST.zw; //transform to lightMap space
                 v.vertex.z = v.vertex.z > 0 ? 0.001 : 0;
                 o.pos = UnityObjectToClipPos(v.vertex);
-                o.uv = TRANSFORM_TEX(v.uv, _AlbedoMap);
+                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 return o;
             }
 
             float4 frag(v2f i): SV_Target { // perform pass twice to output albedo and emission
                 UnityMetaInput mi;
-                mi.Albedo = (1, 0, 0 , 1);
+                mi.Albedo = tex2D(_MainTex, i.uv) * _Color;
                 mi.Emission = tex2D(_EmissiveMap, i.uv) * _EmissiveColor;
                 return UnityMetaFragment(mi);
             }

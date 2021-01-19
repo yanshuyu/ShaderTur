@@ -4,8 +4,8 @@ using UnityEditor;
 
 public class PhongLigtingShaderGUI : ShaderGUI
 {
-    static string PropertyName_AlbedoMap = "_AlbedoMap";
-    static string PropertyName_MainColor = "_MainColor";
+    static string PropertyName_AlbedoMap = "_MainTex";
+    static string PropertyName_MainColor = "_Color";
     static string PropertyName_NormalMap = "_NormalMap";
     static string PropertyName_SpecColor = "_SpecColor";
     static string PropertyName_Shininess = "_Shininess";
@@ -13,7 +13,7 @@ public class PhongLigtingShaderGUI : ShaderGUI
     static string PropertyName_EmissiveColor = "_EmissiveColor";
     static string PropertyName_OcclusionMap = "_OcclusionMap";
     static string  PropertyName_OcclusionStren = "_OcclusionStrength";
-    static string PropertyName_AlphaThreshold = "_AlphaThreshold";
+    static string PropertyName_AlphaThreshold = "_Cutoff";
     static string PropertyName_SpecReflectivity = "_SpecReflectivity";
     static string PropertyName_ScrBlendFactor = "_SrcBlendFactor";
     static string PropertyName_DstBlendFactor = "_DstBlendFactor";
