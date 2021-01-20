@@ -6,6 +6,7 @@
 #include "AutoLight.cginc"
 
 #define UNITY_SPECCUBE_LOD_STEPS 6
+#define pi 3.14159
 
 struct VS_IN
 {
