@@ -40,6 +40,7 @@
      <Compile Include="Assets\Effects\DeferredFogEffect.cs" />
      <Compile Include="Assets\Effects\BCSEffect.cs" />
      <Compile Include="Assets\Script\FirstScript.cs" />
+     <None Include="Assets\Shaders\DistortionFlow.shader" />
      <None Include="Assets\Shaders\SimpleGlass.shader" />
      <None Include="Assets\Shaders\Phong.shader" />
      <None Include="Assets\Shaders\HullFurPass.cginc" />
