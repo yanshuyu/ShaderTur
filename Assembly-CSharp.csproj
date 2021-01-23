@@ -48,6 +48,8 @@
      <None Include="Assets\Shaders\PhongDeferred.shader" />
      <None Include="Assets\Shaders\PhongRim.shader" />
      <None Include="Assets\Shaders\DeferredFog.shader" />
+     <None Include="Assets\Shaders\ToonWater.shader" />
+     <None Include="Assets\Shaders\ToonGrass.shader" />
      <None Include="Assets\Shaders\Transforms.txt" />
      <None Include="Assets\Shaders\Cartoon.shader" />
      <None Include="Assets\Shaders\Glass.shader" />
