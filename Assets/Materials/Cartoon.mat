@@ -67,8 +67,8 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _RimEdge: 0.32
-    - _RimStrength: 0.59
+    - _RimEdge: 0.29
+    - _RimStrength: 0.87
     - _ShadingLevel: 2
     - _Shininess: 0.49
     - _SmoothnessTextureChannel: 0

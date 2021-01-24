@@ -34,6 +34,9 @@ struct VS_OUT
     #if UNITY_FOG   
     float clipDepth : TEXCOORD4;
     #endif
+    #ifdef SHADE_MODE_WIREFRAME
+    float3 edgeDistance : TEXCOORD5;
+    #endif
 };
 
 

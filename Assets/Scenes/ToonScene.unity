@@ -449,7 +449,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f5e9a07721b6e44d19c1f5e44777fb99, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 16
+      value: 14.42
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f5e9a07721b6e44d19c1f5e44777fb99, type: 3}
       propertyPath: m_LocalPosition.z
@@ -505,7 +505,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 273898ef2963a434fabacf01d5ef4860, type: 2}
     - target: {fileID: -3282762019591866814, guid: f5e9a07721b6e44d19c1f5e44777fb99, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.1
+      value: -0.05
       objectReference: {fileID: 0}
     - target: {fileID: -2761413554801483588, guid: f5e9a07721b6e44d19c1f5e44777fb99, type: 3}
       propertyPath: m_Materials.Array.data[0]
@@ -514,6 +514,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: f5e9a07721b6e44d19c1f5e44777fb99, type: 3}
       propertyPath: m_Name
       value: GrassPlane10x10
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: f5e9a07721b6e44d19c1f5e44777fb99, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f5e9a07721b6e44d19c1f5e44777fb99, type: 3}

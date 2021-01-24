@@ -15,6 +15,8 @@
         _Cutoff ("Alpha Cutout Threshold", Range(0, 1)) = 0.1
         _EnvReflectivity ("Reflectivity", Range(0, 1)) = 0.5
         _EnvReflectStrength ("Strength", Range(0, 1)) = 0.5
+        _EdgeColor ("Edge Color", Color) = (0, 0, 0, 1)
+        _EdgeWidth ("Edge Width", Range(1, 20)) = 0.05
 
         [HideInInspector] _SrcBlendFactor ("Src Blend", Float) = 1
         [HideInInspector] _DstBlendFactor ("Dst Blend", Float) = 0
@@ -69,16 +71,18 @@
 
             CGPROGRAM
             #pragma vertex vert
+            #pragma geometry geom
             #pragma fragment frag
-            #pragma multi_compile _ SHADOWS_SCREEN
-            #pragma multi_compile _ VERTEXLIGHT_ON LIGHTMAP_ON // lightMap and VertLit are mutual excludesive
+            #pragma target 4.0
 
+            #pragma multi_compile_fwdbase
+            #pragma multi_compile_fog //FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma shader_feature NORMAL_MAP_ENABLED
             #pragma shader_feature OCCLUSION_MAP_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
-            #pragma multi_compile_fog //FOG_LINEAR FOG_EXP FOG_EXP2
             #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT
+            #pragma shader_feature _ SHADE_MODE_FLAT SHADE_MODE_WIREFRAME
 
             #if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)
             #define UNITY_FOG 1
@@ -105,6 +109,9 @@
             half _EnvReflectivity;
             half _EnvReflectStrength;
 
+            fixed4 _EdgeColor;
+            half _EdgeWidth;
+
             VS_OUT vert (VS_IN v)
             {
                 VS_OUT o;
@@ -129,7 +136,48 @@
                 o.clipDepth = o.pos.z;
                 #endif
 
+                #ifdef SHADE_MODE_WIREFRAME
+                o.edgeDistance = (0, 0, 0);
+                #endif
+
                 return o;
+            }
+
+            [maxvertexcount(3)]
+            void geom(triangle VS_OUT gs_in[3], inout TriangleStream<VS_OUT> triStream)
+            {
+                #ifdef SHADE_MODE_FLAT
+                float3 v0 = gs_in[1].posW - gs_in[0].posW;
+                float3 v1 = gs_in[2].posW - gs_in[0].posW;
+                gs_in[0].normalW = gs_in[1].normalW = gs_in[2].normalW = normalize(cross(v0, v1));
+                #endif
+
+                #ifdef SHADE_MODE_WIREFRAME
+                float4 p0 = ComputeScreenPos(gs_in[0].pos);
+                float4 p1 = ComputeScreenPos(gs_in[1].pos);
+                float4 p2 = ComputeScreenPos(gs_in[2].pos);
+                p0.xy =  p0.xy / p0.w * _ScreenParams.xy;
+                p1.xy =  p1.xy / p1.w * _ScreenParams.xy;
+                p2.xy =  p2.xy / p2.w * _ScreenParams.xy;
+
+                float a = length(p1.xy - p2.xy);
+                float b = length(p2.xy - p0.xy);
+                float c = length(p1.xy - p0.xy);
+
+                float alpha = acos( (b*b + c*c - a*a) / (2.0*b*c) );
+                float beta = acos( (a*a + c*c - b*b) / (2.0*a*c) );
+                float ha = abs( c * sin( beta ) );
+                float hb = abs( c * sin( alpha ) );
+                float hc = abs( b * sin( alpha ) );
+  
+                gs_in[0].edgeDistance = (ha, 0, 0);
+                gs_in[1].edgeDistance = (0, hb, 0);
+                gs_in[2].edgeDistance = (0, 0, hc);
+                #endif
+
+                triStream.Append(gs_in[0]);
+                triStream.Append(gs_in[1]);
+                triStream.Append(gs_in[2]);
             }
 
             half4 frag (VS_OUT fs_in) : SV_Target
@@ -146,7 +194,7 @@
                 #endif
 
                 half3 normal = fs_in.normalW;
-                #ifdef NORMAL_MAP_ENABLED 
+                #if defined(NORMAL_MAP_ENABLED) && !defined(SHADE_MODE_FLAT) 
                 half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
                 half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
                 normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
@@ -204,6 +252,12 @@
                 #if UNITY_FOG
                 totalLight = ApplyFog(totalLight, fs_in.clipDepth);
                 #endif
+
+                #ifdef SHADE_MODE_WIREFRAME
+                float minEdgeDis = min(min(fs_in.edgeDistance.x, fs_in.edgeDistance.y), fs_in.edgeDistance.z);
+                minEdgeDis = smoothstep(_EdgeWidth/2 - 1, _EdgeWidth/2 + 1, minEdgeDis);    
+                totalLight.rgb = lerp(_EdgeColor.rgb, totalLight.rgb, minEdgeDis);
+                #endif
                
                 return  half4(totalLight, alpha);
             }
@@ -218,13 +272,16 @@
 
             CGPROGRAM
             #pragma vertex vert
+            #pragma geometry geom
             #pragma fragment frag
+            #pragma target 4.0
+
             #pragma multi_compile_fwdadd
             #pragma multi_compile _ SHADOWS_SCREEN
             #pragma multi_compile_fog
             #pragma shader_feature _ NORMAL_MAP_ENABLED
             #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT 
-
+            #pragma shader_feature _ SHADE_MODE_FLAT
             #if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)
             #define UNITY_FOG 1
             #endif
@@ -239,6 +296,7 @@
             half _Cutoff;
             half _SpecReflectivity;
 
+
             VS_OUT vert (VS_IN v)
             {
                 VS_OUT o;
@@ -247,11 +305,33 @@
                 o.tangentW =  float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
                 o.posW = mul(unity_ObjectToWorld, v.vertex).xyz;
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+
                 TRANSFER_SHADOW(o);
+
                 #if UNITY_FOG
                 o.clipDepth = o.pos.z;
                 #endif
+
+                #ifdef SHADE_MODE_WIREFRAME
+                o.edgeDistance = (0, 0, 0);
+                #endif
+
                 return o;
+            }
+
+
+            [maxvertexcount(3)]
+            void geom(triangle VS_OUT gs_in[3], inout TriangleStream<VS_OUT> triStream)
+            {
+                #ifdef SHADE_MODE_FLAT
+                float3 v0 = gs_in[1].posW - gs_in[0].posW;
+                float3 v1 = gs_in[2].posW - gs_in[0].posW;
+                gs_in[0].normalW = gs_in[1].normalW = gs_in[2].normalW = normalize(cross(v0, v1));
+                #endif
+
+                triStream.Append(gs_in[0]);
+                triStream.Append(gs_in[1]);
+                triStream.Append(gs_in[2]);
             }
 
             half4 frag (VS_OUT fs_in) : SV_Target
@@ -267,7 +347,7 @@
                 #endif
 
                 half3 normal = fs_in.normalW;
-                #ifdef NORMAL_MAP_ENABLED
+                #if defined(NORMAL_MAP_ENABLED) && !defined(SHADE_MODE_FLAT)
                 half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
                 half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
                 normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
@@ -307,9 +387,12 @@
             #pragma shader_feature OCCLUSION_MAP_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
+            #pragma shader_feature _ SHADE_MODE_FLAT SHADE_MODE_WIREFRAME
             
             #pragma vertex vert
+            #pragma geometry geom
             #pragma fragment frag
+            #pragma target 4.0
 
             #include "PhongLighting.cginc"
 
@@ -330,6 +413,9 @@
             sampler2D _OcclusionMap;
             half _OcclusionStrength;
 
+            fixed4 _EdgeColor;
+            half _EdgeWidth;
+
             struct FS_OUT {
                 float4 gBuffer0 : SV_Target0;
                 float4 gBuffer1 : SV_Target1;
@@ -349,20 +435,61 @@
                     unity_LightColor[0].rgb, unity_LightColor[1].rgb, unity_LightColor[2].rgb, unity_LightColor[3].rgb,
                     unity_4LightAtten0, vsOut.posW, vsOut.normalW); //* D.rgb;
                 #endif
+
+                #ifdef SHADE_MODE_WIREFRAME
+                vsOut.edgeDistance = (0, 0, 0);
+                #endif
                 
                 return vsOut;
             }
 
-            FS_OUT frag(VS_OUT fsIn) {
+            [maxvertexcount(3)]
+            void geom(triangle VS_OUT gs_in[3], inout TriangleStream<VS_OUT> triStream)
+            {
+                #ifdef SHADE_MODE_FLAT
+                float3 v0 = gs_in[1].posW - gs_in[0].posW;
+                float3 v1 = gs_in[2].posW - gs_in[0].posW;
+                gs_in[0].normalW = gs_in[1].normalW = gs_in[2].normalW = normalize(cross(v0, v1));
+                #endif
+
+                #ifdef SHADE_MODE_WIREFRAME
+                float4 p0 = ComputeScreenPos(gs_in[0].pos);
+                float4 p1 = ComputeScreenPos(gs_in[1].pos);
+                float4 p2 = ComputeScreenPos(gs_in[2].pos);
+                p0.xy =  p0.xy / p0.w * _ScreenParams.xy;
+                p1.xy =  p1.xy / p1.w * _ScreenParams.xy;
+                p2.xy =  p2.xy / p2.w * _ScreenParams.xy;
+
+                float a = length(p1.xy - p2.xy);
+                float b = length(p2.xy - p0.xy);
+                float c = length(p1.xy - p0.xy);
+
+                float alpha = acos( (b*b + c*c - a*a) / (2.0*b*c) );
+                float beta = acos( (a*a + c*c - b*b) / (2.0*a*c) );
+                float ha = abs( c * sin( beta ) );
+                float hb = abs( c * sin( alpha ) );
+                float hc = abs( b * sin( alpha ) );
+  
+                gs_in[0].edgeDistance = (ha, 0, 0);
+                gs_in[1].edgeDistance = (0, hb, 0);
+                gs_in[2].edgeDistance = (0, 0, hc);
+                #endif
+
+                triStream.Append(gs_in[0]);
+                triStream.Append(gs_in[1]);
+                triStream.Append(gs_in[2]);
+            }
+
+            FS_OUT frag(VS_OUT fs_in) {
                 FS_OUT fsOut;
                 // albedo & occlusion
-                fixed4 A = tex2D(_MainTex, fsIn.uv) * _Color;
+                fixed4 A = tex2D(_MainTex, fs_in.uv) * _Color;
                 #ifdef RENDER_MODE_CUTOUT
                 clip(A.a - _Cutoff);
                 #endif
                 half occlusion = 1;
                 #ifdef OCCLUSION_MAP_ENABLED
-                occlusion = lerp(1,tex2D(_OcclusionMap, fsIn.uv).r, _OcclusionStrength); 
+                occlusion = lerp(1,tex2D(_OcclusionMap, fs_in.uv).r, _OcclusionStrength); 
                 #endif
 
                 fsOut.gBuffer0.rgb = A.rgb;
@@ -373,30 +500,30 @@
                 fsOut.gBuffer1.a = _Shininess;
 
                 // world space normal
-                half3 normal = fsIn.normalW;
-                #ifdef NORMAL_MAP_ENABLED
-                half3 normalT = UnpackNormal(tex2D(_NormalMap, fsIn.uv));
-                half3 biTangentW = normalize(cross(fsIn.normalW, fsIn.tangentW.xyz) * fsIn.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
-                normal = normalize(normalT.x * fsIn.tangentW.xyz + normalT.y * biTangentW + normalT.z * fsIn.normalW);
+                half3 normal = fs_in.normalW;
+                #if defined(NORMAL_MAP_ENABLED) && !defined(SHADE_MODE_FLAT)
+                half3 normalT = UnpackNormal(tex2D(_NormalMap, fs_in.uv));
+                half3 biTangentW = normalize(cross(fs_in.normalW, fs_in.tangentW.xyz) * fs_in.tangentW.w * unity_WorldTransformParams.w); // if object has negative scale, flip bitangent
+                normal = normalize(normalT.x * fs_in.tangentW.xyz + normalT.y * biTangentW + normalT.z * fs_in.normalW);
                 #endif
                 fsOut.gBuffer2.rgb = normal * 0.5 + 0.5;
                 fsOut.gBuffer2.a = 0;
 
                 // emissive
-                half3 E = tex2D(_EmissiveMap, fsIn.uv).rgb * _EmissiveColor.rgb;
+                half3 E = tex2D(_EmissiveMap, fs_in.uv).rgb * _EmissiveColor.rgb;
                 
                 // Light accumulation (Emission, Ambient, environment reflection...)
                 half3 C = (0,0,0);
                 #ifdef VERTEXLIGHT_ON
-                    C += fsIn.vertLightColor * A.rgb;
+                    C += fs_in.vertLightColor * A.rgb;
                 #endif
-                C += saturate(ShadeSH9(half4(fsIn.normalW, 1)));
+                C += saturate(ShadeSH9(half4(fs_in.normalW, 1)));
 
                 #ifdef ENVRONMENT_REFLCTION_ENABLED
-                half3 V = UnityWorldSpaceViewDir(fsIn.posW);
+                half3 V = UnityWorldSpaceViewDir(fs_in.posW);
                 half3 sampleDir = reflect(-V, normal);
                 #ifdef ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED
-                sampleDir = BoxProjection(sampleDir, fsIn.posW, unity_SpecCube0_ProbePosition, unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax);
+                sampleDir = BoxProjection(sampleDir, fs_in.posW, unity_SpecCube0_ProbePosition, unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax);
                 #endif
                 half roughness = 1 - _EnvReflectivity;
                 half4 R = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, sampleDir, roughness * UNITY_SPECCUBE_LOD_STEPS);
@@ -406,6 +533,12 @@
 
                 C *= occlusion;
                 C += E;
+
+                #ifdef SHADE_MODE_WIREFRAME
+                float minEdgeDis = min(min(fs_in.edgeDistance.x, fs_in.edgeDistance.y), fs_in.edgeDistance.z);
+                minEdgeDis = smoothstep(_EdgeWidth/2 - 1, _EdgeWidth/2 + 1, minEdgeDis);    
+                C.rgb = lerp(_EdgeColor.rgb, C.rgb, minEdgeDis);
+                #endif
 
                 #if !defined(UNITY_HDR_ON)
                 C = exp2(-C);

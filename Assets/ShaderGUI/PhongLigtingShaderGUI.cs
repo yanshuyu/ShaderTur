@@ -20,6 +20,8 @@ public class PhongLigtingShaderGUI : ShaderGUI
     static string PropertyName_ZWrite = "_Zwrite";
     static string PropertyName_EnvReflectivity = "_EnvReflectivity";
     static string PropertyName_EnvReflectStrength = "_EnvReflectStrength";
+    static string PropertyName_EdgeColor = "_EdgeColor";
+    static string PropertyName_EdgeWidth = "_EdgeWidth";
 
     static string KeyWord_NormalMap_Enabled = "NORMAL_MAP_ENABLED";
     static string keyWord_OcclusionMap_Enabled = "OCCLUSION_MAP_ENABLED";
@@ -29,6 +31,8 @@ public class PhongLigtingShaderGUI : ShaderGUI
     static string KeyWord_RenderMode_Cutout = "RENDER_MODE_CUTOUT";
     static string KeyWord_RenderMode_Fade = "RENDER_MODE_FADE";
     static string KeyWord_RenderMode_Transparent = "RENDER_MODE_TRANSPARENT";
+    static string KeyWord_ShadeMode_Flat = "SHADE_MODE_FLAT";
+    static string KeyWord_ShadeMode_WireFrame = "SHADE_MODE_WIREFRAME";
 
     Material activeMaterial;
 
@@ -39,10 +43,15 @@ public class PhongLigtingShaderGUI : ShaderGUI
         Transparent,
     }
 
+    enum ShadeMode {
+        Default,
+        Flat,
+        WireFrame,
+    }
+
     GUIContent GUILableForProperty(MaterialProperty prop, string tip = null) {
         return new GUIContent(prop.displayName, tip);
     }
-
     void SetKeyWordEnabled(string keyWord, bool enable) {
         if (enable)
             activeMaterial.EnableKeyword(keyWord);
@@ -96,12 +105,25 @@ public class PhongLigtingShaderGUI : ShaderGUI
         }
     }
 
+    ShadeMode GetShadeMode() {
+        ShadeMode shadeMode = ShadeMode.Default;
+        if (activeMaterial.IsKeywordEnabled(KeyWord_ShadeMode_Flat))
+            shadeMode = ShadeMode.Flat;
+        else if(activeMaterial.IsKeywordEnabled(KeyWord_ShadeMode_WireFrame))
+            shadeMode = ShadeMode.WireFrame;
+        return shadeMode;
+    }
+
+    void SetShadeMode(ShadeMode shadeMode) {
+        SetKeyWordEnabled(KeyWord_ShadeMode_Flat, shadeMode == ShadeMode.Flat);
+        SetKeyWordEnabled(KeyWord_ShadeMode_WireFrame, shadeMode == ShadeMode.WireFrame);        
+    }
+
     public override void OnGUI(MaterialEditor editor, MaterialProperty[] properties) {
         activeMaterial = editor.target as Material;
 
         // render mode
         RenderMode renderMode = GetRenderMode();
-
         EditorGUI.BeginChangeCheck();
         renderMode = (RenderMode)EditorGUILayout.EnumPopup("Render Mode", renderMode);
         if (EditorGUI.EndChangeCheck()) {
@@ -116,6 +138,21 @@ public class PhongLigtingShaderGUI : ShaderGUI
             EditorGUI.indentLevel += 2;
             editor.ShaderProperty(rel, GUILableForProperty(rel));
             EditorGUI.indentLevel -= 2;
+        }
+
+        // shade mode
+        ShadeMode shadeMode = GetShadeMode();
+        EditorGUI.BeginChangeCheck();
+        shadeMode = (ShadeMode)EditorGUILayout.EnumPopup("Shade Mode", shadeMode);
+        if(EditorGUI.EndChangeCheck()) {
+            editor.RegisterPropertyChangeUndo("Shade Mode");
+            SetShadeMode(shadeMode);
+        }
+        if (shadeMode == ShadeMode.WireFrame) {
+            MaterialProperty edgeColor = FindProperty(PropertyName_EdgeColor, properties);
+            MaterialProperty edgeWidth = FindProperty(PropertyName_EdgeWidth, properties);
+            editor.ShaderProperty(edgeColor, GUILableForProperty(edgeColor));
+            editor.ShaderProperty(edgeWidth, GUILableForProperty(edgeWidth));
         }
 
 
