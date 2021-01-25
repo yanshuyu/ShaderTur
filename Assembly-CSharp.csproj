@@ -42,6 +42,7 @@
      <Compile Include="Assets\Script\FirstScript.cs" />
      <None Include="Assets\Shaders\DistortionFlow.shader" />
      <None Include="Assets\Shaders\SimpleGlass.shader" />
+     <None Include="Assets\Shaders\Tessellation.shader" />
      <None Include="Assets\Shaders\Phong.shader" />
      <None Include="Assets\Shaders\HullFurPass.cginc" />
      <None Include="Assets\Shaders\NormalExtrusion.shader" />
