@@ -46,6 +46,7 @@
      <None Include="Assets\Shaders\Phong.shader" />
      <None Include="Assets\Shaders\HullFurPass.cginc" />
      <None Include="Assets\Shaders\NormalExtrusion.shader" />
+     <None Include="Assets\Shaders\DirectionalFlow.shader" />
      <None Include="Assets\Shaders\PhongDeferred.shader" />
      <None Include="Assets\Shaders\PhongRim.shader" />
      <None Include="Assets\Shaders\DeferredFog.shader" />

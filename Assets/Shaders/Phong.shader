@@ -37,25 +37,84 @@
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT
             #include "UnityCG.cginc"
+
+            #if defined(RENDER_MODE_FADE) || defined(RENDER_MODE_TRANSPARENT)
+            #define SEMITETRANSPARENT_SHADOW
+            #endif
+
+            #if defined(RENDER_MODE_CUTOUT) || defined(SEMITETRANSPARENT_SHADOW)
+            #define SHADOW_NEED_UV
+            #endif
+
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            fixed4 _Color;
+            half _Cutoff;
+
+            sampler3D _DitherMaskLOD;
 
             struct VS_IN {
                 float4 posL : POSITION;
                 float3 normalL : NORMAL;
+                float2 uv : TEXCOORD0;
             };
 
             struct VS_OUT {
                 float4 posC : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                
+                #ifdef SHADOW_CUBE
+                float3 lightVec : TEXCOORD1;
+                #endif
+
+                #ifdef SEMITETRANSPARENT_SHADOW
+                float4 screenPos : TEXCOORD2; //light space screen pos
+                #endif
+
             };
 
-            VS_OUT vert(VS_IN v) : SV_POSITION {
+            VS_OUT vert(VS_IN v) {
                 VS_OUT o;
+                o.uv = v.uv;
+                #ifdef SHADOW_CUBE
+                o.posC = UnityObjectToClipPos(v.posL);
+                o.lightVec = mul(unity_ObjectToWorld, v.posL).xyz - _WorldSpaceLightPos0.xyz;
+                #else
                 float4 posClip = UnityClipSpaceShadowCasterPos(v.posL.xyz, v.normalL); // normal bias
                 o.posC = UnityApplyLinearShadowBias(posClip); // shadow bias
+                #endif
+               
+                #ifdef SHADOW_NEED_UV
+                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+                #endif
+
+                #ifdef SEMITETRANSPARENT_SHADOW
+                o.screenPos = ComputeScreenPos(UnityObjectToClipPos(v.posL));
+                #endif
+
                 return o;
             }
 
-            fixed4 frag() : SV_Target {
+            fixed4 frag(VS_OUT fs_in) : SV_Target {
+                #ifdef RENDER_MODE_CUTOUT
+                float a = tex2D(_MainTex, fs_in.uv).a * _Color.a;
+                clip(a - _Cutoff);
+                #endif
+
+                #ifdef SEMITETRANSPARENT_SHADOW
+                float a = tex2D(_MainTex, fs_in.uv).a * _Color.a;
+                a = tex3D(_DitherMaskLOD, float3(2500.0 * (fs_in.screenPos.xy / fs_in.screenPos.w) , a * 15 / 16.0)).a;
+                clip(a - 0.01);
+                #endif
+                
+                #ifdef SHADOW_CUBE
+                float depth = length(fs_in.lightVec) + unity_LightShadowBias.x;;
+                depth *= _LightPositionRange.w; // 1/range
+                return UnityEncodeCubeShadowDepth(depth);
+                #endif
+
                 return 0;
             }
 

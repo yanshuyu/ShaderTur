@@ -102,6 +102,6 @@ Material:
     - _HeightRange: {r: 14.1, g: 28.1, b: 0, a: 0}
     - _RimColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
     - _SpecColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
-    - _TipColor: {r: 0.57463, g: 1, b: 0.033018887, a: 1}
+    - _TipColor: {r: 0.6189187, g: 0.9622642, b: 0.17702031, a: 1}
     - _WidthRange: {r: 2.21, g: 5.1, b: 0, a: 0}
   m_BuildTextureStacks: []
