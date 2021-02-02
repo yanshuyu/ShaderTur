@@ -75,6 +75,7 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendFactor: 10
+    - _EdgeWidth: 0.05
     - _EnvReflectStrength: 0.5
     - _EnvReflection: 0
     - _EnvReflectivity: 0.85
@@ -89,9 +90,9 @@ Material:
     - _Parallax: 0.02
     - _Reflectivity: 0.71
     - _RimPow: 1
-    - _Shininess: 0.44
+    - _Shininess: 0.107
     - _SmoothnessTextureChannel: 0
-    - _SpecReflectivity: 0.42
+    - _SpecReflectivity: 0.476
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendFactor: 1
@@ -99,7 +100,8 @@ Material:
     - _ZWrite: 1
     - _Zwrite: 0
     m_Colors:
-    - _Color: {r: 0.46698105, g: 0.742139, b: 1, a: 0.72156864}
+    - _Color: {r: 0.46698081, g: 0.742139, b: 1, a: 0.6117647}
+    - _EdgeColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
     - _MainColor: {r: 0.29703632, g: 0.5076462, b: 0.7075472, a: 0.7176471}

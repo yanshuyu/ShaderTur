@@ -105,7 +105,7 @@
 
                 #ifdef SEMITETRANSPARENT_SHADOW
                 float a = tex2D(_MainTex, fs_in.uv).a * _Color.a;
-                a = tex3D(_DitherMaskLOD, float3(2500.0 * (fs_in.screenPos.xy / fs_in.screenPos.w) , a * 15 / 16.0)).a;
+                a = tex3D(_DitherMaskLOD, float3(10000 * (fs_in.screenPos.xy / fs_in.screenPos.w) , a * 15 / 16.0)).a;
                 clip(a - 0.01);
                 #endif
                 
