@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Mirror
   m_Shader: {fileID: 4800000, guid: 72d7cdf3811854b82816e747eb9292a4, type: 3}
-  m_ShaderKeywords: ENVRONMENT_REFLCTION_ENABLED
+  m_ShaderKeywords: ENVRONMENT_REFLCTION_BOX_PROJECTION_ENABLED ENVRONMENT_REFLCTION_ENABLED
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -74,6 +74,7 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendFactor: 0
+    - _EdgeWidth: 0.05
     - _EnvReflectStrength: 1
     - _EnvReflectivity: 1
     - _GlossMapScale: 1
@@ -93,7 +94,8 @@ Material:
     - _ZWrite: 1
     - _Zwrite: 1
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.20754719, g: 0.20754719, b: 0.20754719, a: 1}
+    - _EdgeColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
     - _MainColor: {r: 0, g: 0, b: 0, a: 1}

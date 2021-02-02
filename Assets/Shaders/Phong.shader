@@ -3,12 +3,12 @@
     Properties
     {
         _MainTex ("Albedo(RGBA)", 2D) = "white" {}
-        _Color ("Main Color(RGBA)", Color) = (0.8, 0.8, 0.8, 1.0)
+        [HDR]_Color ("Main Color(RGBA)", Color) = (0.8, 0.8, 0.8, 1.0)
         _NormalMap ("Normal Map", 2D) = "bump" {}
         _SpecColor ("Specular Color(RGB)", Color) = (1, 1, 1, 1)
         _Shininess ("Shininess", Range(0.0, 1.0)) = 0.5
         _EmissiveMap ("Emissive(RGB)", 2D) = "white" {}
-        _EmissiveColor ("Emissive Color(RGB)", Color) = (0.0, 0.0, 0.0 , 1.0)
+        [HDR]_EmissiveColor ("Emissive Color(RGB)", Color) = (0.0, 0.0, 0.0 , 1.0)
         _OcclusionMap ("Occlusion Map(R)", 2D) = "white" {}
         _OcclusionStrength("Occlusion Strength", Range(0, 1)) = 1
         _SpecReflectivity ("Specular Reflectivity", Range(0, 1)) = 0.5

@@ -39,8 +39,8 @@
      <Compile Include="Assets\ShaderGUI\PhongLigtingShaderGUI.cs" />
      <Compile Include="Assets\Effects\DeferredFogEffect.cs" />
      <Compile Include="Assets\Effects\BCSEffect.cs" />
-     <Compile Include="Assets\Script\FirstScript.cs" />
      <Compile Include="Assets\Script\ToonLiquidMotion.cs" />
+     <Compile Include="Assets\Effects\BloomEffect.cs" />
      <None Include="Assets\Shaders\DistortionFlow.shader" />
      <None Include="Assets\Shaders\SimpleGlass.shader" />
      <None Include="Assets\Shaders\Tessellation.shader" />
@@ -56,6 +56,7 @@
      <None Include="Assets\Shaders\Transforms.txt" />
      <None Include="Assets\Shaders\Cartoon.shader" />
      <None Include="Assets\Shaders\Glass.shader" />
+     <None Include="Assets\Shaders\Bloom.shader" />
      <None Include="Assets\Shaders\ToonLiquid.shader" />
      <None Include="Assets\Shaders\PhongLighting.cginc" />
      <None Include="Assets\Shaders\HullFur.shader" />

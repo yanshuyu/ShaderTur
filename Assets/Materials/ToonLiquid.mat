@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: ToonLiquid
-  m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
+  m_Shader: {fileID: 4800000, guid: 0b713c8b7fd1b4c3fa8861cd672b1b30, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -56,10 +56,14 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
+    - _BottleEdge: 0.016
     - _BumpScale: 1
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
+    - _EdgeWidth: 1
+    - _FillAmount: -0.1
+    - _FoamHeight: 0.028
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
@@ -67,12 +71,24 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
+    - _RimPow: 0.05
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _UVSec: 0
+    - _WobbleX: 0
+    - _WobbleZ: 0
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _BottleColor: {r: 0.7783019, g: 0.8601465, b: 1, a: 0.19215687}
+    - _Color: {r: 1, g: 0.5999241, b: 0.25943398, a: 1}
+    - _EdgeColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _FoamColor: {r: 0.7924528, g: 0.75133497, b: 0.75133497, a: 1}
+    - _LiquidColor: {r: 0.15860271, g: 1, b: 0, a: 1}
+    - _LiquidTopColor: {r: 0.84981817, g: 1, b: 0.8066038, a: 1}
+    - _ObjectPos: {r: 0, g: 0, b: 0, a: 0}
+    - _RimColor: {r: 0.5235849, g: 0.97516435, b: 1, a: 1}
+    - _TessFactors: {r: 2, g: 2, b: 2, a: 1}
+    - _Wobble: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
