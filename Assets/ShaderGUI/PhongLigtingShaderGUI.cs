@@ -179,7 +179,8 @@ public class PhongLigtingShaderGUI : ShaderGUI
         if (EditorGUI.EndChangeCheck()) {
             SetKeyWordEnabled(KeyWord_NormalMap_Enabled, normalMap.textureValue);
         }
-        
+
+        editor.TextureScaleOffsetProperty(abledoMap);
 
         // spec & shininess
         MaterialProperty specColor = FindProperty(PropertyName_SpecColor, properties);
@@ -210,6 +211,7 @@ public class PhongLigtingShaderGUI : ShaderGUI
         }
 
 
-        editor.TextureScaleOffsetProperty(abledoMap);
+        GUILayout.Label("Advance Option", EditorStyles.boldLabel);
+        editor.EnableInstancingField();
     }
 }

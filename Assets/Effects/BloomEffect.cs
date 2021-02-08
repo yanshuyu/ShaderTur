@@ -60,7 +60,7 @@ public class BloomEffect : MonoBehaviour
 
         for (int j=0; j<MAX_ITERATION; j++) {
             if (tempTextures[j]) {
-                tempTextures[j].Release();
+                RenderTexture.ReleaseTemporary(tempTextures[j]);
                 tempTextures[j] = null;
             }
         }

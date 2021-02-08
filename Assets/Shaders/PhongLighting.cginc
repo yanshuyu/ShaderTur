@@ -10,6 +10,7 @@
 
 struct VS_IN
 {
+    UNITY_VERTEX_INPUT_INSTANCE_ID
     float4 vertex : POSITION;
     float3 normal : NORMAL;
     float4 tangent : TANGENT;
@@ -19,6 +20,7 @@ struct VS_IN
 
 struct VS_OUT
 {
+    UNITY_VERTEX_INPUT_INSTANCE_ID
     float4 pos : SV_POSITION;
     float4 tangentW : TANGENT;
     float3 normalW : NORMAL;

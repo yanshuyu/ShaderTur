@@ -69,6 +69,7 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendFactor: 0
+    - _EdgeWidth: 7.1
     - _EnvReflectStrength: 0.5
     - _EnvReflectivity: 0.5
     - _GlossMapScale: 1
@@ -89,6 +90,7 @@ Material:
     - _Zwrite: 1
     m_Colors:
     - _Color: {r: 0.90588236, g: 0.34858853, b: 0.11372546, a: 1}
+    - _EdgeColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 1, g: 1, b: 1, a: 1}

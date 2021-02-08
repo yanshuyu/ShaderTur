@@ -1,4 +1,6 @@
-﻿Shader "Custom/Phong"
+﻿// Upgrade NOTE: upgraded instancing buffer 'InstanceProperties' to new syntax.
+
+Shader "Custom/Phong"
 {
     Properties
     {
@@ -37,6 +39,8 @@
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #pragma multi_compile_shadowcaster
+            #pragma multi_compile_instancing
             #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT
             #include "UnityCG.cginc"
 
@@ -50,22 +54,28 @@
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
-            fixed4 _Color;
             half _Cutoff;
+
+            UNITY_INSTANCING_BUFFER_START(InstanceProperties)
+            UNITY_DEFINE_INSTANCED_PROP(half4, _Color)
+            #define _Color_arr InstanceProperties
+            UNITY_INSTANCING_BUFFER_END(InstanceProperties)
 
             sampler3D _DitherMaskLOD;
 
             struct VS_IN {
+                UNITY_VERTEX_INPUT_INSTANCE_ID
                 float4 posL : POSITION;
                 float3 normalL : NORMAL;
                 float2 uv : TEXCOORD0;
             };
 
             struct VS_OUT {
+                UNITY_VERTEX_INPUT_INSTANCE_ID
                 float4 posC : SV_POSITION;
                 float2 uv : TEXCOORD0;
                 
-                #ifdef SHADOW_CUBE
+                #ifdef SHADOWS_CUBE
                 float3 lightVec : TEXCOORD1;
                 #endif
 
@@ -77,8 +87,10 @@
 
             VS_OUT vert(VS_IN v) {
                 VS_OUT o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_TRANSFER_INSTANCE_ID(v, o);
                 o.uv = v.uv;
-                #ifdef SHADOW_CUBE
+                #ifdef SHADOWS_CUBE
                 o.posC = UnityObjectToClipPos(v.posL);
                 o.lightVec = mul(unity_ObjectToWorld, v.posL).xyz - _WorldSpaceLightPos0.xyz;
                 #else
@@ -98,8 +110,10 @@
             }
 
             fixed4 frag(VS_OUT fs_in) : SV_Target {
+                UNITY_SETUP_INSTANCE_ID(fs_in);
+
                 #ifdef RENDER_MODE_CUTOUT
-                float a = tex2D(_MainTex, fs_in.uv).a * _Color.a;
+                float a = tex2D(_MainTex, fs_in.uv).a * UNITY_ACCESS_INSTANCED_PROP(_Color_arr, _Color).a;
                 clip(a - _Cutoff);
                 #endif
 
@@ -109,8 +123,8 @@
                 clip(a - 0.01);
                 #endif
                 
-                #ifdef SHADOW_CUBE
-                float depth = length(fs_in.lightVec) + unity_LightShadowBias.x;;
+                #ifdef SHADOWS_CUBE
+                float depth = length(fs_in.lightVec) + unity_LightShadowBias.x;
                 depth *= _LightPositionRange.w; // 1/range
                 return UnityEncodeCubeShadowDepth(depth);
                 #endif
@@ -136,6 +150,7 @@
 
             #pragma multi_compile_fwdbase
             #pragma multi_compile_fog //FOG_LINEAR FOG_EXP FOG_EXP2
+            #pragma multi_compile_instancing
             #pragma shader_feature NORMAL_MAP_ENABLED
             #pragma shader_feature OCCLUSION_MAP_ENABLED
             #pragma shader_feature ENVRONMENT_REFLCTION_ENABLED
@@ -149,10 +164,15 @@
             
             #include "PhongLighting.cginc"
 
+            UNITY_INSTANCING_BUFFER_START(InstanceProperties)
+            UNITY_DEFINE_INSTANCED_PROP(half4, _Color)
+            #define _Color_arr InstanceProperties
+            UNITY_DEFINE_INSTANCED_PROP(half, _Shininess)
+            #define _Shininess_arr InstanceProperties
+            UNITY_INSTANCING_BUFFER_END(InstanceProperties)
+
             sampler2D _MainTex;
             half4 _MainTex_ST;
-            fixed4 _Color;
-            fixed _Shininess;
 
             sampler2D _NormalMap;
 
@@ -174,6 +194,8 @@
             VS_OUT vert (VS_IN v)
             {
                 VS_OUT o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_TRANSFER_INSTANCE_ID(v, o);
                 o.pos = UnityObjectToClipPos(v.vertex);
                 o.normalW = UnityObjectToWorldNormal(v.normal);
                 o.tangentW =  float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
@@ -241,8 +263,9 @@
 
             half4 frag (VS_OUT fs_in) : SV_Target
             {
+                UNITY_SETUP_INSTANCE_ID(fs_in);
                 // main directional light
-                fixed4 A = tex2D(_MainTex, fs_in.uv) * _Color;
+                fixed4 A = tex2D(_MainTex, fs_in.uv) * UNITY_ACCESS_INSTANCED_PROP(_Color_arr, _Color);
 
                 #ifdef RENDER_MODE_CUTOUT
                 clip(A.a - _Cutoff);
@@ -261,7 +284,7 @@
                 
                 // direct light
                 // diffuse, specular
-                half3 directLight = PhongLighting(fs_in, normal, A.rgb, _SpecColor.rgb, _Shininess);
+                half3 directLight = PhongLighting(fs_in, normal, A.rgb, _SpecColor.rgb, UNITY_ACCESS_INSTANCED_PROP(_Shininess_arr, _Shininess));
 
                 // emissive
                 half3 E = tex2D(_EmissiveMap, fs_in.uv).rgb * _EmissiveColor.rgb;
@@ -336,7 +359,7 @@
             #pragma target 4.0
 
             #pragma multi_compile_fwdadd
-            #pragma multi_compile _ SHADOWS_SCREEN
+            #pragma multi_compile_instancing
             #pragma multi_compile_fog
             #pragma shader_feature _ NORMAL_MAP_ENABLED
             #pragma shader_feature _ RENDER_MODE_CUTOUT RENDER_MODE_FADE RENDER_MODE_TRANSPARENT 
@@ -359,6 +382,7 @@
             VS_OUT vert (VS_IN v)
             {
                 VS_OUT o;
+                UNITY_SETUP_INSTANCE_ID(v);
                 o.pos = UnityObjectToClipPos(v.vertex);
                 o.normalW = UnityObjectToWorldNormal(v.normal);
                 o.tangentW =  float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
@@ -439,6 +463,7 @@
             }
 
             CGPROGRAM
+            #pragma multi_compile_instancing
             #pragma multi_compile _ VERTEXLIGHT_ON
             #pragma multi_compile _ UNITY_HDR_ON
             #pragma shader_feature _ RENDER_MODE_CUTOUT
@@ -457,12 +482,16 @@
 
             sampler2D _MainTex;
             half4 _MainTex_ST;
-            fixed4 _Color;
-
-            half _Cutoff;
-            half _Shininess;
             half _EnvReflectivity;
             half _EnvReflectStrength;
+            half _Cutoff;
+
+            UNITY_INSTANCING_BUFFER_START(InstanceProperties)
+            UNITY_DEFINE_INSTANCED_PROP(half4, _Color)
+            #define _Color_arr InstanceProperties
+            UNITY_DEFINE_INSTANCED_PROP(half, _Shininess)
+            #define _Shininess_arr InstanceProperties
+            UNITY_INSTANCING_BUFFER_END(InstanceProperties)
 
             sampler2D _NormalMap;
 
@@ -484,6 +513,8 @@
 
             VS_OUT vert( VS_IN v) {
                 VS_OUT vsOut;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_TRANSFER_INSTANCE_ID(v, vsOut);
                 vsOut.pos = UnityObjectToClipPos(v.vertex);
                 vsOut.normalW = UnityObjectToWorldNormal(v.normal);
                 vsOut.tangentW =  float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
@@ -540,9 +571,11 @@
             }
 
             FS_OUT frag(VS_OUT fs_in) {
+                UNITY_SETUP_INSTANCE_ID(fs_in);
+
                 FS_OUT fsOut;
                 // albedo & occlusion
-                fixed4 A = tex2D(_MainTex, fs_in.uv) * _Color;
+                fixed4 A = tex2D(_MainTex, fs_in.uv) * UNITY_ACCESS_INSTANCED_PROP(_Color_arr, _Color);
                 #ifdef RENDER_MODE_CUTOUT
                 clip(A.a - _Cutoff);
                 #endif
@@ -556,7 +589,7 @@
 
                 // specular & smoothness
                 fsOut.gBuffer1.rgb = _SpecColor.rgb; //gBuffer1.rgb = lerp(F0, tex2D(_MainTex).rgb, _metallic);
-                fsOut.gBuffer1.a = _Shininess;
+                fsOut.gBuffer1.a = UNITY_ACCESS_INSTANCED_PROP(_Shininess_arr, _Shininess);
 
                 // world space normal
                 half3 normal = fs_in.normalW;
