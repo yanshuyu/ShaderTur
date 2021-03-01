@@ -39,10 +39,10 @@
      <Compile Include="Assets\Script\ToonLiquidMotion.cs" />
      <Compile Include="Assets\Script\GPUInstancing.cs" />
      <Compile Include="Assets\ShaderGUI\PhongLigtingShaderGUI.cs" />
+     <Compile Include="Assets\Script\HealthBarUI.cs" />
      <Compile Include="Assets\Effects\DeferredFogEffect.cs" />
      <Compile Include="Assets\Effects\BCSEffect.cs" />
      <Compile Include="Assets\Effects\BloomEffect.cs" />
-     <Compile Include="Assets\Script\HealthBarUI.cs" />
      <None Include="Assets\Shaders\DistortionFlow.shader" />
      <None Include="Assets\Shaders\SimpleGlass.shader" />
      <None Include="Assets\Shaders\Tessellation.shader" />
